@@ -1,8 +1,11 @@
 (ns ld23.core
-  (:require [clojure.browser.repl :as repl]
-            [crate.core :as crate])
-  (:use-macros [crate.macros :only [defpartial]]))
+  (:require [clojure.browser.repl :as repl]))
+
+(set! *print-fn* #(.log js/console %))
 
 (repl/connect "http://localhost:9000/repl")
 
 (def debug? true)
+(def width 640)
+(def height 480)
+(def game-name "ld23")

@@ -9,3 +9,4 @@ pom.xml
 .lein-failures
 .lein-plugins
 /node_modules
+/public/js
