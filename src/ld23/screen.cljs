@@ -8,7 +8,7 @@
 (defn clear [cvs] (.clearRect (context cvs) cvs.width cvs.height))
 
 
-(defn render [cvsbg cvs ticks]
+(defn render [cvs ticks]
   (let [w cvs.width
         h cvs.height
         t (/ ticks 10)
@@ -16,5 +16,7 @@
         y (* (+ (Math/sin t) 1) 0.5 h)]
     (clear cvs)
     (doto (context cvs)
+      (fill-style "black")
+      (fill-rect 0 0 w h)
       (fill-style "white")
       (fill-rect x y 10 10))))

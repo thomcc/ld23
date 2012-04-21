@@ -9,13 +9,7 @@
   [:div#wrapper
    [:div#content
     [:h1 name]
-    [:div#screen {:style (str "position: relative; z-index:1;"
-;                              "width: " width "px;"
-                              "height: " height "px;")}
-     [:canvas#bgcanvas {:width width :height height
-                        :style "z-index: -1;position: absolute;"}]
-     [:canvas#canvas {:width width :height height
-                      :style "z-index: 1; position: absolute;"}]]
+    [:canvas#canvas {:width width :height height}]
     [:span#fps]]])
 
 (def game (atom nil))
@@ -28,6 +22,11 @@
       (.-oRequestAnimationFrame js/window)
       (.-msRequestAnimationFrame js/window)
       (fn [callback] (js/setTimeout callback 17))))
+
+;; (defn animate [fun]
+;;   (js/setTimeout fun 17))
+
+
 
 (def get-key {38 :up, 40 :down, 37 :left, 39 :right})
 
@@ -50,12 +49,11 @@
 (def total-ticks (atom 0))
 (def ticks (atom 0))
 (def frames (atom 0))
-(def bgcanvas)
 (def canvas)
 
 (defn main-loop []
   (let [current-tick (.getTime (js/Date.))
-        needed (* 0.045 (- current-tick @last-tick))]
+        needed (* (/ 30 1000) (- current-tick @last-tick))]
     (loop [n needed]
       (when (<= 0 n)
         (swap! ticks inc)
@@ -67,11 +65,10 @@
     ;;                      (swap! ticks inc))
     ;;                  g)))
     (reset! last-tick (.getTime (js/Date.)))
-    (screen/render bgcanvas canvas @total-ticks)
+    (screen/render canvas @total-ticks)
     (swap! frames inc)
     (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
       (update-fps @frames @ticks)
-      (prn (- (.getTime (js/Date.)) @last-fps-update))
       (reset! frames 0)
       (reset! ticks 0)
       (reset! last-fps-update (.getTime (js/Date.))))
@@ -79,8 +76,7 @@
      (animate main-loop))))
 
 (defn init-vars []
-  (set! canvas (u/get-elem :canvas))
-  (set! bgcanvas (u/get-elem :bgcanvas)))
+  (set! canvas (u/get-elem :canvas)))
 
 (defn start []
   (layout-page)
