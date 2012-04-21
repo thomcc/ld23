@@ -60,7 +60,7 @@
      (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
        (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
          (doto ctx
-           (fill-style (level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
+           (fill-style (nth level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
            (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
 
 (defn render-player

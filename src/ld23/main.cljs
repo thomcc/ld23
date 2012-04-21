@@ -31,34 +31,49 @@
 (defn layout-page []
   (.appendChild (.-body js/document) (page t/game-name t/width t/height)))
 
-(def last-tick (atom (.getTime (js/Date.))))
+(def canvas)
+
+
+(def last-loop (atom (.getTime (js/Date.))))
+
 (def last-fps-update (atom (.getTime (js/Date.))))
 (def total-ticks (atom 0))
-
 (def ticks (atom 0))
 (def frames (atom 0))
 
-(def canvas)
+(def needed (atom 0))
+
+(def render-canvas
+  (let [c (.createElement js/document "canvas")]
+    (set! c.width t/width)
+    (set! c.height t/height)
+    c))
 
 (defn main-loop []
-  (when-not (:quit @input)
-    (let [current-tick (.getTime (js/Date.))
-          needed (* (/ 30 1000) (- current-tick @last-tick))]
-      (swap! game #(loop [n needed, g %]
+  (when-not (contains? @input :quit)
+    (let [now (.getTime (js/Date.))]
+      (swap! needed + (/ (- now @last-loop) (/ 1000 60)))
+      (reset! last-loop now)
+      (swap! game #(loop [n @needed, g %]
                      (if (pos? n)
                        (do (swap! ticks inc)
+                           (swap! needed dec)
                            (swap! total-ticks inc)
                            (recur (dec n) (g/tick g @input)))
                        g)))
-      (reset! last-tick (.getTime (js/Date.)))
-      (screen/render canvas @game)
+      (animate main-loop)
+      (screen/render render-canvas @game)
+
+      (.. canvas
+          (getContext "2d")
+          (drawImage render-canvas 0 0 (.-width canvas) (.-height canvas)))
+
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
         (reset! last-fps-update (.getTime (js/Date.)))
         (update-fps @frames @ticks)
         (reset! frames 0)
-        (reset! ticks 0))
-      (animate main-loop))))
+        (reset! ticks 0)))))
 
 (defn init-vars []
   (set! canvas (u/get-elem :canvas))

@@ -43,9 +43,11 @@
   (look-at [this mx my]
     (Player. x y mx my (Math/atan2 (- y my) (- x mx)) a?))
   (tick [this dx dy lx ly c?]
-    (let [nx (+ x (* player-speed dx))
-          ny (+ y (* player-speed dy))]
-     (Player. nx ny lx ly (Math/atan2 (- ly ny) (- lx nx)) c?))))
+    (let [dist (+ (* dx dx) (* dy dy))
+          dd (if (zero? dist) 1 (Math/sqrt dist))
+          nx (+ x (* player-speed (/ dx dd)))
+          ny (+ y (* player-speed (/ dy dd)))]
+      (Player. nx ny lx ly (Math/atan2 (- ly ny) (- lx nx)) c?))))
 
 (defn player [x y] (Player. x y 0 0 0 false))
 
