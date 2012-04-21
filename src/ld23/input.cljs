@@ -9,7 +9,7 @@
 
 (def get-key {38 :up, 40 :down, 37 :left, 39 :right ; arrow keys
               87 :up, 83 :down, 65 :left, 68 :right ; wasd
-              27 :quit
+              27 :quit, 81 :quit
               })
 
 (defn on-key [input-atom handle]
@@ -39,6 +39,10 @@
     (doto canvas
       (.addEventListener "mousemove" mm)
       (.addEventListener "mousedown" #(do (swap! input-atom assoc :c? true)
+                                          (prn "true")
+                                          (.log js/console @input-atom)
                                           (mm %)))
       (.addEventListener "mouseup" #(do (swap! input-atom assoc :c? false)
+                                        (prn "false")
+                                        (.log js/console @input-atom)
                                         (mm %))))))

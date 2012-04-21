@@ -34,20 +34,20 @@
 
 (def player-speed 3)
 
-(defrecord Player [x y ex ey rot]
+(defrecord Player [x y ex ey rot a?]
   Object
   (move-1d [this l dx dy]
-    (Player. (+ x dx) (+ y dy) ex ey rot))
+    (Player. (+ x dx) (+ y dy) ex ey rot a?))
   (move [this l dx dy]
     (-> this (.move-1d l dx 0) (.move-1d l 0 dy)))
   (look-at [this mx my]
-    (Player. x y mx my (Math/atan2 (- y my) (- x mx))))
-  (tick [this dx dy lx ly]
+    (Player. x y mx my (Math/atan2 (- y my) (- x mx)) a?))
+  (tick [this dx dy lx ly c?]
     (let [nx (+ x (* player-speed dx))
           ny (+ y (* player-speed dy))]
-     (Player. nx ny lx ly (Math/atan2 (- ly ny) (- lx ny))))))
+     (Player. nx ny lx ly (Math/atan2 (- ly ny) (- lx nx)) c?))))
 
-(defn player [x y] (Player. x y 0 0 0))
+(defn player [x y] (Player. x y 0 0 0 false))
 
 (defn new-game []
   (.offset
@@ -60,15 +60,15 @@
   (-> game
       (update-in [:player]
                  (fn [p]
-                   (.tick p
-                          (cond (ks :right) 1
-                                (ks :left) -1
-                                :else 0)
+                   (.tick p (cond (ks :right) 1
+                                  (ks :left) -1
+                                  :else 0)
                           (cond (ks :down) 1
                                 (ks :up) -1
                                 :else 0)
                           (+ mx xo)
-                          (+ my yo))))))
+                          (+ my yo)
+                          c?)))))
 
 (defn tick
   [{:keys [level player] :as game} input]

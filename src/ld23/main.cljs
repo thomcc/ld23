@@ -41,23 +41,23 @@
 (def canvas)
 
 (defn main-loop []
-  (let [current-tick (.getTime (js/Date.))
-        needed (* (/ 30 1000) (- current-tick @last-tick))]
-    (swap! game #(loop [n needed, g %]
-                   (if (pos? n)
-                     (do (swap! ticks inc)
-                         (swap! total-ticks inc)
-                         (recur (dec n) (g/tick g @input)))
-                     g)))
-    (reset! last-tick (.getTime (js/Date.)))
-    (screen/render canvas @game)
-    (swap! frames inc)
-    (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
-      (reset! last-fps-update (.getTime (js/Date.)))
-      (update-fps @frames @ticks)
-      (reset! frames 0)
-      (reset! ticks 0))
-    (when-not (get @input :quit)
+  (when-not (:quit @input)
+    (let [current-tick (.getTime (js/Date.))
+          needed (* (/ 30 1000) (- current-tick @last-tick))]
+      (swap! game #(loop [n needed, g %]
+                     (if (pos? n)
+                       (do (swap! ticks inc)
+                           (swap! total-ticks inc)
+                           (recur (dec n) (g/tick g @input)))
+                       g)))
+      (reset! last-tick (.getTime (js/Date.)))
+      (screen/render canvas @game)
+      (swap! frames inc)
+      (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
+        (reset! last-fps-update (.getTime (js/Date.)))
+        (update-fps @frames @ticks)
+        (reset! frames 0)
+        (reset! ticks 0))
       (animate main-loop))))
 
 (defn init-vars []

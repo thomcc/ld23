@@ -1,5 +1,5 @@
 (ns ld23.screen
-  (:use-macros [ld23.macros :only [with-path with-save]]))
+  (:use-macros [ld23.macros :only [with-path with-save saving]]))
 
 (defn context [cvs] (.getContext cvs "2d"))
 
@@ -47,19 +47,38 @@
 
 (defn rotate [ctx r]
   (.rotate ctx r))
+(def level-colors ["black" "red" "blue" "green" "orange" "purple"])
+(defn render-level
+  [cvs {:keys [w h] :as lvl} xo yo]
+  (let [ctx (context cvs)
+        cxoff (mod xo 16)
+        cyoff (mod yo 16)
+        lxoff (Math/floor (/ xo 16))
+        lyoff (Math/floor (/ yo 16))]
+   (saving ctx
+;;     (translate ctx cxoff cyoff)
+     (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
+       (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
+         (doto ctx
+           (fill-style (level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
+           (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
 
-(defn render [cvs {{:keys [x y ex ey rot]} :player xo :xo yo :yo}]
-  (doto (context cvs)
-    (fill-style "black")
-    (fill-rect 0 0 cvs.width cvs.height)
+(defn render-player
+  [cvs {:keys [x y ex ey rot a?] :as player} xo yo]
+  (with-save (context cvs)
+    (style "white")
+;    (translate xo yo)
     (with-save
-      (style "white")
-      (translate xo yo)
-      (with-save
-        (translate x y)
-        (rotate rot)
-        (fill-rect -4 -4 8 8))
-      (with-path
-        (move-to x y)
-        (line-to ex ey))
-      (stroke))))
+      (translate (- x xo) (- y yo))
+      (rotate rot)
+      (fill-style (if a? "black" "white"))
+      (fill-rect -4 -10 8 20))
+    (with-path
+      (move-to (- x xo) (- y yo))
+      (line-to (- ex xo) (- ey yo)))
+    (stroke)))
+
+(defn render [cvs {:keys [player level xo yo]}]
+  (doto cvs
+    (render-level level xo yo)
+    (render-player player xo yo)))
