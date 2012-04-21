@@ -1,0 +1,67 @@
+* THEME: Tiny World
+
+** microbes?
+
+*** person fighting microbes?
+
+*** need fluid movement, might be hard to do fast with canvas
+
+*** and generally hard
+
+
+** tiny planet?
+
+** huge player interacting with tiny worlds
+
+** tiny space for player to occupy?
+
+*** spaceship from inside (no space controls)?
+
+**** spaceship crashed on tiny world?
+
+*** tiny island?
+
+** one pixel everything
+
+*** rts?
+
+*** platformer?
+
+** other ways to interpret tiny
+
+*** insignificant, slight, negligable, unimportant....
+
+
+** other ways to interpret world
+
+*** civilization? 
+*** existence?
+*** experience?
+
+
+
+** small animals?
+
+** bugs? 
+
+*** ants? (ant sim :p)
+
+** smaller than microscopic?
+
+*** atoms?  electrons?  
+
+*** inside a computer?
+
+** tiny is relative
+
+*** galaxies can be tiny... maybe?
+
+** world in your own head?
+
+
+
+** hm probably going with.... spaceship crashed on a small planet
+
+
+
+
