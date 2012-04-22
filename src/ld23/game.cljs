@@ -2,7 +2,7 @@
   (:require [ld23.utils :as u]
             [ld23.core :as c])
   (:use [ld23.screen :only [prerender-level]]
-        [ld23.gen :only [create-map]]))
+        [ld23.gen :only [gen-world]]))
 
 
 
@@ -47,7 +47,7 @@
 
 (defn new-game []
   (.offset
-   (Game. (create-map 100 100)
+   (Game. (gen-world 128 128)
           (player 100 100)
           0 0)))
 

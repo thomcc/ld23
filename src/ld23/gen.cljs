@@ -87,7 +87,7 @@
 (defn diff [a b] (Math/abs (- a b)))
 (defn scaled-diff [a b] (- (* 3 (Math/abs (- a b))) 2))
 
-(defn create-map [w h]
+(defn gen-world [w h]
   (let [mna (seed-ary w h 16)
         mnb (seed-ary w h 16)
         mnc (seed-ary w h 16)
@@ -113,7 +113,7 @@
 
 (defn demo [c]
   (.. c (getContext "2d") (clearRect 0 0 c.width c.height))
-  (let [m (create-map 128 128)]
+  (let [m (gen-world 128 128)]
     (let [ctx (.getContext c "2d")]
       (dotimes [i 128]
         (dotimes [j 128]
@@ -128,5 +128,5 @@
                   [:canvas#test {:width 512 :height 512}]
                   [:button#btn {:style "display: block; margin: auto"} "generate"]]))
   (let [c (.getElementById js/document "test")]
-    (ld23.gen/demo c)
+    (demo c)
     (set! (.-onclick (.getElementById js/document "btn")) #(demo c))))

@@ -1,5 +1,6 @@
 (ns ld23.screen
- (:use-macros [ld23.macros :only [with-path with-save saving]]))
+  (:use [ld23.gen :only [tile-colors]])
+  (:use-macros [ld23.macros :only [with-path with-save saving]]))
 
 (defn context [cvs] (.getContext cvs "2d"))
 
@@ -56,7 +57,7 @@
       (dotimes [j h]
         (dotimes [i w]
           (doto ctx
-            (fill-style (nth level-colors (lvl i j)))
+            (fill-style (nth tile-colors (lvl i j)))
             (fill-rect (* i 1) (* j 1) 1 1)))))
     c))
 
@@ -67,13 +68,11 @@
         cyoff (mod yo 16)
         lxoff (Math/floor (/ xo 16))
         lyoff (Math/floor (/ yo 16))]
-#_    (.drawImage ctx img (/ xo 16) yo cvs.width cvs.height
-                0 0 cvs.width cvs.height)
     (saving ctx
         (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
           (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
             (doto ctx
-              (fill-style (nth level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
+              (fill-style (nth tile-colors (lvl (+ lx lxoff) (+ ly lyoff))))
               (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
 
 (defn render-player
