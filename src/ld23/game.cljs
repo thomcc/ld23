@@ -1,6 +1,9 @@
 (ns ld23.game
   (:require [ld23.utils :as u]
-            [ld23.core :as c]))
+            [ld23.core :as c])
+  (:use [ld23.screen :only [prerender-level]]
+        [ld23.gen :only [create-map]]))
+
 
 
 
@@ -8,23 +11,14 @@
   Object
   (offset [_]
     (Game. level player
-           (-> (- (.-x player) (/ c/width 2))
+           (-> (- (.-x player) (/ c/width 2 c/scale))
                (max 0)
-               (min (- (* 16 (.-w level)) c/width)))
-           (-> (- (.-y player) (/ c/height 2))
+               (min (- (* 16 (.-w level)) (/ c/width c/scale))))
+           (-> (- (.-y player) (/ c/height 2 c/scale))
                (max 0)
-               (min (- (* 16 (.-h level)) c/height))))))
+               (min (- (* 16 (.-h level)) (/ c/height c/scale)))))))
 
-(defrecord Level [w h map]
-  IFn
-  (invoke [_ x y]
-    (if (and (< -1 x w) (< -1 y h))
-      (aget map y x)
-      0)))
 
-(defn level
-  ([w h] (level w h #(inc (rand-int 4))))
-  ([w h f] (Level. w h (u/array-2d w h f))))
 
 ;; (defprotocol Entity
 ;;   (move-1d [this l dx dy])
@@ -53,7 +47,7 @@
 
 (defn new-game []
   (.offset
-   (Game. (level 100 100)
+   (Game. (create-map 100 100)
           (player 100 100)
           0 0)))
 

@@ -45,8 +45,8 @@
 
 (def render-canvas
   (let [c (.createElement js/document "canvas")]
-    (set! c.width t/width)
-    (set! c.height t/height)
+    (set! c.width (/ t/width t/scale))
+    (set! c.height (/ t/height t/scale))
     c))
 
 (defn main-loop []
@@ -66,7 +66,7 @@
 
       (.. canvas
           (getContext "2d")
-          (drawImage render-canvas 0 0 (.-width canvas) (.-height canvas)))
+          (drawImage render-canvas 0 0))
 
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
@@ -82,12 +82,13 @@
     (reset! input in)
     (reset! game ng)))
 
-(defn start []
+(defn start [ml]
   (layout-page)
   (init-vars)
   (i/bind-events input canvas)
-  (animate main-loop))
+  (animate ml))
 
-(start)
 (defn restart []
   (animate main-loop))
+
+(start main-loop)

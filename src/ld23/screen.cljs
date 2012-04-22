@@ -1,5 +1,5 @@
 (ns ld23.screen
-  (:use-macros [ld23.macros :only [with-path with-save saving]]))
+ (:use-macros [ld23.macros :only [with-path with-save saving]]))
 
 (defn context [cvs] (.getContext cvs "2d"))
 
@@ -47,27 +47,39 @@
 
 (defn rotate [ctx r]
   (.rotate ctx r))
-(def level-colors ["black" "red" "blue" "green" "orange" "purple"])
+
+(defn prerender-level [{:keys [w h] :as lvl}]
+  (let [c (.createElement js/document "canvas")]
+    (set! c.width (* w 16))
+    (set! c.height (* h 16))
+    (let [ctx (context c)]
+      (dotimes [j h]
+        (dotimes [i w]
+          (doto ctx
+            (fill-style (nth level-colors (lvl i j)))
+            (fill-rect (* i 1) (* j 1) 1 1)))))
+    c))
+
 (defn render-level
-  [cvs {:keys [w h] :as lvl} xo yo]
+  [cvs {:keys [img] :as lvl} xo yo]
   (let [ctx (context cvs)
         cxoff (mod xo 16)
         cyoff (mod yo 16)
         lxoff (Math/floor (/ xo 16))
         lyoff (Math/floor (/ yo 16))]
-   (saving ctx
-;;     (translate ctx cxoff cyoff)
-     (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
-       (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
-         (doto ctx
-           (fill-style (nth level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
-           (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
+#_    (.drawImage ctx img (/ xo 16) yo cvs.width cvs.height
+                0 0 cvs.width cvs.height)
+    (saving ctx
+        (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
+          (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
+            (doto ctx
+              (fill-style (nth level-colors (lvl (+ lx lxoff) (+ ly lyoff))))
+              (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
 
 (defn render-player
   [cvs {:keys [x y ex ey rot a?] :as player} xo yo]
   (with-save (context cvs)
     (style "white")
-;    (translate xo yo)
     (with-save
       (translate (- x xo) (- y yo))
       (rotate rot)

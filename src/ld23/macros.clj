@@ -17,3 +17,19 @@
      (.beginPath)
      ~@forms
      (.closePath)))
+
+(defmacro dogrid [bindings & body]
+  (let [[i starti endi stepi, j startj endj stepj] bindings]
+    `(let [startj# ~startj, endj# ~endj, stepj# ~stepj
+           starti# ~starti, endi# ~endi, stepi# ~stepi]
+       (loop [~j startj#]
+         (when (< ~j endj#)
+           (loop [~i starti#]
+             (when (< ~i endi#)
+               ~@body
+               (recur (+ ~i stepi#))))
+           (recur (+ ~j stepj#)))))))
+
+(defmacro defregion [name & opts]
+  `(do (def ~name (ld23.gen/region ~@opts))
+       (swap! ld23.gen/regions conj ~name)))
