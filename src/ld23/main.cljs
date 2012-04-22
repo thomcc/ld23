@@ -35,7 +35,7 @@
   (.appendChild (.-body js/document) (page c/game-name c/width c/height)))
 
 (def canvas)
-
+(def img)
 
 (def last-loop (atom (.getTime (js/Date.))))
 
@@ -66,11 +66,10 @@
                        g)))
       (animate main-loop)
       (screen/render render-canvas @game)
-
       (.. canvas
           (getContext "2d")
-          (drawImage render-canvas 0 0))
-
+          (drawImage render-canvas 0 0 (/ c/width c/scale) (/ c/height c/scale)
+                     0 0 c/width c/height))
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
         (reset! last-fps-update (.getTime (js/Date.)))
@@ -89,16 +88,29 @@
 (defn stop []
   (reset! running false))
 
-(defn start [ml]
+
+(defn start []
   (layout-page)
   (init-vars)
   (i/bind-events input canvas)
   (when c/debug?
     (set! (.-onclick (u/get-elem :stop)) stop))
-  (animate ml))
+  (let [i (.createElement js/document "img")]
+    (set! i.src "res/img.png")
+    (set! i.onload
+          #(let [c (.createElement js/document "canvas")]
+             (set! c.width 128)
+             (set! c.height 128)
+             (.. c (getContext "2d") (drawImage i 0 0 128 128))
+             (set! img c)
+             (screen/cache-images c)
+             (animate main-loop)))))
 
 
 (defn restart []
   (animate main-loop))
 
-(start main-loop)
+
+
+
+(start)

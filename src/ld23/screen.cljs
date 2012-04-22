@@ -1,6 +1,7 @@
 (ns ld23.screen
   (:use [ld23.gen :only [tile-colors crystal?]])
-  (:require [ld23.utils :as u])
+  (:require [ld23.utils :as u]
+            [ld23.gen :as gen])
   (:use-macros [ld23.macros :only [with-path with-save saving]]))
 
 (defn context [cvs] (.getContext cvs "2d"))
@@ -108,187 +109,128 @@
     (line-to (+ x r) y)
     (quad-to x y x (+ y r))))
 
-;; todo: revisit:
-;; (defn prerender-level [{:keys [w h] :as lvl}]
-;;   (let [c (.createElement js/document "canvas")]
-;;     (set! c.width (* w 32))
-;;     (set! c.height (* h 32))
-;;     (let [ctx (context c)]
-;;       (dotimes [j h]
-;;         (dotimes [i w]
-;;           (doto ctx
-;;             (fill-style (nth tile-colors (lvl i j)))
-;;             (fill-rect (* i 1) (* j 1) 1 1)))))
-;;     c))
+(def player-img)
 
-(defn draw-crystals [ctx]
-  (with-save ctx
-    (with-path ;; outline
-      (move-to 2 18)
-      (line-to 3 7)
-      (line-to 10 13)
-      (line-to 12 (* 4 6))
-      (line-to 10 13)
-      (line-to 13 6)
-      (line-to 16 2)
-      (line-to 21 6)
-      (line-to 21 15)
-      (line-to 22 23)
-      (line-to 21 15)
-      (line-to 25 6)
-      (line-to 29 14)
-      (line-to 26 28)
-      (line-to 5 27)
-      (line-to 2 18))
-    fill stroke
-    (with-path ;; inside/details
-      (move-to 2 18)
-      (line-to 8 12)
-      (move-to 5 12)
-      (line-to 7 23)
-      (move-to 12 7)
-      (line-to 15 8)
-      (line-to 19 8)
-      (line-to 21 6)
-      (move-to 16 5)
-      (line-to 15 7)
-      (line-to 15 21)
-      (move-to 19 8)
-      (line-to 18 22)
-      (move-to 22 13)
-      (line-to 24 15)
-      (line-to 27 15)
-      (line-to 28 13)
-      (move-to 25 15)
-      (line-to 23 26))
-    stroke))
+(def tiles)
+
+(defn cache-images [icanv]
+  (set! tiles icanv)
+  (let [plc (.createElement js/document "canvas")]
+    (set! plc.height (* 16 16))
+    (set! plc.width 64)
+    (let [ctx (.getContext plc "2d")]
+      (dotimes [t 4]
+        (let [ipix (.. icanv (getContext "2d")
+                       (getImageData (* t 16) 64 16 16)
+                       -data)]
+         (dotimes [d 16]
+           (let [dpix (.createImageData ctx 16 16)
+                 pix (.-data dpix)
+                 dir (* d Math/PI 2 (/ 16))
+                 cd (Math/cos dir)
+                 sd (Math/sin dir)]
+             (dotimes [j 16]
+               (dotimes [i 16]
+                 (let [xpix (Math/floor (+ (* cd (- i 8))
+                                           (* sd (- j 8))
+                                           (+ 8.5)))
+                       ypix (Math/floor (+ (* cd (- j 8))
+                                           (* sd (- 8 i))
+                                           (+ 8.5)))
+                       ost (* 4 (+ xpix (* ypix 16)))
+                       pst (* 4 (+ i (* j 16)))]
+                   (if (and (< -1 xpix 16) (< -1 ypix 16))
+                     (do (aset pix (+ 0 pst) (aget ipix (+ 0 ost)))
+                         (aset pix (+ 1 pst) (aget ipix (+ 1 ost)))
+                         (aset pix (+ 2 pst) (aget ipix (+ 2 ost))))
+                     (do (aset pix (+ 0 pst) 0)
+                         (aset pix (+ 1 pst) 0)
+                         (aset pix (+ 2 pst) 0))))))
+             (.putImageData ctx dpix (* t 16) (* d 16))))))
+      (set! player-img plc))))
+
+(defn draw-crystals [ctx ccp]
+  (.drawImage ctx tiles (* ccp 16) 24 16 16 0 0 16 16))
+
+(def crystal-pos
+  {gen/pink-crystal 0
+   gen/green-crystal 1 gen/orange-crystal 2 gen/blue-crystal 3})
+
+(defn make-draw [ctx ox oy]
+  (fn [dx dy sx sy]
+    (.drawImage ctx tiles sx sy 8 8 (- dx ox) (- dy oy) 8 8)))
+
+(defn draw-floor [draw x y off]
+  (draw (* x 16) (* y 16) (* 8 0 ;; (rand-int 9)
+                             ) (* 8 off))
+  (draw (+ 8 (* x 16)) (* y 16) (* 8 0 ;; (rand-int 9)
+                                   ) (* 8 off))
+  (draw (* x 16) (+ 8 (* y 16)) (* 8 0 ;; (rand-int 9)
+                                   ) (* 8 off))
+  (draw (+ 8 (* x 16)) (+ 8 (* y 16)) (* 8 0 ;; (rand-int 9)
+                                         ) (* 8 off)))
+
+(defn render-fluid [draw lvl x y]
+  (let [t (lvl x y)]
+    (let [u (not= t (lvl x (dec y)))
+          d (not= t (lvl x (inc y)))
+          l (not= t (lvl (dec x) y))
+          r (not= t (lvl (inc x) y))
+          l? (= t gen/lava)
+          off (if l? (* 9 8) (* 12 8))]
+      (if (not (or u l))
+        (draw (* x 16) (* y 16) (* 8 0 ;; (rand-int 9)
+                                   ) (if l? 8 16))
+        (draw (* x 16) (* y 16) (+ off (* 8 (if l 0 1)))
+              (* 8 (if u 0 1))))
+      (if (not (or u r))
+        (draw (+ 8 (* x 16)) (* y 16) (* 8 0 ;; (rand-int 9)
+                                         ) (if l? 8 16))
+        (draw (+ 8 (* x 16)) (* y 16) (+ off (* 8 (if r 2 1)))
+              (* 8 (if u 0 1))))
+      (if (not (or d l))
+        (draw (* x 16) (+ 8 (* y 16)) (* 8 0 ;; (rand-int 9)
+                                         ) (if l? 8 16))
+        (draw (* x 16) (+ 8 (* y 16)) (+ off (* 8 (if l 0 1)))
+              (* 8 (if d 2 1))))
+      (if (not (or d r))
+        (draw (+ 8 (* x 16)) (+ 8 (* y 16)) (* 8 0 ;; (rand-int 9)
+                                               ) (if l? 8 16))
+        (draw (+ 8 (* x 16)) (+ 8 (* y 16)) (+ off (* 8 (if r 2 1)))
+              (* 8 (if d 2 1)))))))
 
 (defn render-level
   [cvs {:keys [img] :as lvl} xo yo]
   (let [ctx (context cvs)
-        cxoff (mod xo 32)
-        cyoff (mod yo 32)
-        lxoff (Math/floor (/ xo 32))
-        lyoff (Math/floor (/ yo 32))]
-    (clear cvs "gray")
+        cxoff (mod xo 16)
+        cyoff (mod yo 16)
+        lxoff (Math/floor (/ xo 16))
+        lyoff (Math/floor (/ yo 16))]
     (saving ctx
-      (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 32))]
-        (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 32))]
+      (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 16))]
+        (dotimes [lx (Math/ceil (/ (+ cvs.width cxoff) 16))]
           (let [x (+ lx lxoff)
                 y (+ ly lyoff)
                 tile (lvl x y)
-                xx (- (* lx 32) cxoff)
-                yy (- (* ly 32) cyoff)]
-            (if (.-crystal? tile)
-              (with-save ctx
-                (translate xx yy)
+                xx (- (* lx 16) cxoff)
+                yy (- (* ly 16) cyoff)]
+            (cond (.-crystal? tile)
+                  (do (draw-floor (make-draw ctx xo yo) x y 0)
+                      (.drawImage ctx tiles
+                                  (* (crystal-pos tile) 16)
+                                  24 16 16 xx yy 16 16))
+                  (.-liq? tile) (render-fluid (make-draw ctx xo yo) lvl x y)
+                  :else
+                  (draw-floor (make-draw ctx xo yo) x y
+                                    (if (= gen/glass tile) 0 10)))))))))
 
-                (fill-style (.-color tile)
-                            ;;(nth tile-colors tile)
-                            )
-                draw-crystals)
-
-              (doto ctx
-
-                (fill-style (.-color tile))
-                (fill-rect xx yy 32 32)))))))))
-
-;; (defn render-connected [ctx lvl x y]
-;;   (let [t (lvl x y)
-;;         c (.-color t)
-;;         ut (lvl x (dec y))
-;;         uc (.-color ut)
-;;         u (not (identical? t ut))
-;;         dt (lvl x (inc y))
-;;         dc (.-color dt)
-;;         d (not (identical? t dt))
-;;         lt (lvl (dec x) y)
-;;         lc (.-color lt)
-;;         l (not (identical? t lt))
-;;         rt (lvl (inc x) y)
-;;         rc (.-color rt)
-;;         r (not (identical? t rt))]
-;;     (if (not (or u l))
-;;       (doto ctx
-;;         (fill-style c)
-;;         (fill-rect (* x 32) (* y 32) 16 16))
-;;       (let [oc (if u uc lc)]
-;;         (fill-style ctx oc)
-;;         (rect ctx (* x 32) (* y 32) 16 16)
-;;         c
-;;         (doto ctx
-;;           (fill-style oc)
-;;           )
-
-;;       (draw (* x 32) (* y 32) (if l -1 0) (if u -1 0)))
-;;     (if (not (or u r))
-
-;;       (draw (+ 16 (* x 32)) (* y 32) (if r 1 0) (if u -1 0)))
-;;     (if (not (or d l))
-
-;;       (draw (* x 32) (+ 16 (* y 32)) (if l -1 0) (if d 1 0)))
-;;     (if (not (or d r))
-
-;;       (draw (+ 16 (* x 32)) (+ 16 (* y 32)) (if r 1 0) (if d 1 0)))))
-
-(defn draw-ship [ctx]
-  (doto ctx
-    (fill-style "#ccc")
-    (stroke-style "black")
-    (line-width 0.3)
-    (with-path
-      (move-to 16 0)
-      (line-to 31 0)
-      (quad-to 32 0 32 1)
-      (line-to 32 15)
-      (quad-to 32 16 31 16)
-      (line-to 16 16)
-      (quad-to 4 14 0 8)
-      (quad-to 4 2 16 0))
-    fill stroke
-    (with-path
-      (move-to 16 4)
-      (line-to 23 4)
-      (quad-to 24 4 24 5)
-      (line-to 24 11)
-      (quad-to 24 12 23 12)
-      (line-to 16 12)
-      ;; (bezier-to 8 12 8 4 16 4)
-      (quad-to 8 12 4 8)
-      (quad-to 8 4 16 4))
-    (fill-style
-     (doto (linear-gradient ctx 0 0 32 16)
-       (add-stop 0.3 "#99ccff")
-       (add-stop 0.5 "#d0e8ff")
-       (add-stop 0.7 "#99ccff")))
-    fill stroke))
-
-
-
-
-(defn draw-player [ctx pos]
-  (doto ctx
-    (fill-style "white")
-    (stroke-style "black")
-    (rounded-rect -5 0 10 5 1)
-    fill stroke
-    (rounded-rect -8 -2 16 5 1)
-    fill stroke
-    (rounded-rect -4 -4 8 6 1)
-    fill stroke))
 
 (defn render-player
   [cvs {:keys [x y ex ey rot tick] :as player} xo yo]
-  (with-save (context cvs)
-    (style "white")
-    (with-save
-      (translate (- x xo) (- y yo))
-      (rotate (+ (/ Math/PI 2) rot))
-      (draw-player (mod tick 12)))
-    (with-path
-      (move-to (- x xo) (- y yo))
-      (line-to (- ex xo) (- ey yo)))
-    (stroke)))
+  (let [dir (bit-and (Math/floor (+ 20.5 (* 16 (/ rot (* Math/PI 2))))) 16)]
+    (.drawImage (context cvs)
+                player-img (* 16 (mod tick 4)) (* 16 dir) 16 16
+                (- x xo) (- y yo) 16 16)))
 
 (defn render [cvs {:keys [player level xo yo]}]
   (doto cvs

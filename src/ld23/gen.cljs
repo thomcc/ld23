@@ -21,33 +21,20 @@
 ;;             :green-crystal :blue-crystal :pink-crystal :orange-crystal
 ;;             :rock])
 
-;; (def tile-colors ["black" "#010914" "gray"  "red" "SkyBlue"
-;;                   "Chartreuse" "MediumAquaMarine" "Orchid" "DarkOrange"])
 
 
-(defrecord Tile [color solid? crystal? liq? hazard connects]
-  Object
-  (render [this ctx lvl x y]
-    (if connects?
-      (let []
-        (draw (* x 32) (* y 32) (if l -1 0) (if u -1 0))
 
+(defrecord Tile [solid? crystal? liq? hazard?])
 
-        )
-      (do ())
-      ))
-  )
-
-(def empty (Tile. "black" true  false false 0 false))
-(def sea (Tile. "#010914" false false true 10 true))
-(def ground (Tile. "gray" false false false 0 false))
-(def lava (Tile. "red" false false true 100 true))
-(def glass (Tile. "SkyBlue" false false false 0 true))
-;;(def rock (Tile. "DarkGray" true false false 0 ))
-(def green-crystal (Tile. "Chartreuse" true true false 0 false))
-(def blue-crystal   (Tile. "MediumAquaMarine" true true false 0 false))
-(def pink-crystal   (Tile. "Orchid"     true true false 0 false))
-(def orange-crystal (Tile. "DarkOrange" true true false 0 false))
+(def empty (Tile. true  false false 0))
+(def sea (Tile. false false true 10))
+(def ground (Tile. false false false 0))
+(def lava (Tile. false false true 100))
+(def glass (Tile. false false false 0))
+(def green-crystal (Tile. true true false 0))
+(def blue-crystal (Tile. true true false 0))
+(def pink-crystal (Tile. true true false 0))
+(def orange-crystal (Tile. true true false 0))
 
 (def tiles [empty sea ground lava glass green-crystal blue-crystal
             pink-crystal orange-crystal])
@@ -146,7 +133,8 @@
                              :else 2)))))
     (reduce #(%2 %1) (Level. w h m) @regions)))
 
-
+(def tile-colors ["black" "#010914" "gray"  "red" "SkyBlue"
+                  "Chartreuse" "MediumAquaMarine" "Orchid" "DarkOrange"])
 
 (defn demo [c]
   (.. c (getContext "2d") (clearRect 0 0 c.width c.height))

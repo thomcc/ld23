@@ -9,5 +9,5 @@
 
 (def width 640)
 (def height 480)
-(def scale 1)
+(def scale 2)
 (def game-name "Crash!")
