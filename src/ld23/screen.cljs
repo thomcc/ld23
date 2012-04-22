@@ -31,6 +31,9 @@
 (defn line-to [ctx x y]
   (.lineTo ctx x y))
 
+(defn quad-to [ctx x0 y0 x1 y1]
+  (.quadraticCurveTo ctx x0 y0 x1 y1))
+
 (defn stroke [ctx]
   (.stroke ctx))
 
@@ -48,6 +51,19 @@
 
 (defn rotate [ctx r]
   (.rotate ctx r))
+
+(defn rounded-rect [ctx x y w h r]
+  (with-path ctx
+    (move-to x (+ y r))
+    (line-to x (+ y h (- r)))
+    (quad-to x (+ y h) (+ x r) (+ y h))
+    (line-to (+ x w (- r)) (+ y h))
+    (quad-to (+ x w) (+ y h) (+ x w) (+ y h (- r)))
+    (line-to (+ x w) (+ y r))
+    (quad-to (+ x w) y (+ x w (- r)) y)
+    (line-to (+ x r) y)
+    (quad-to x y x (+ y r))))
+
 
 (defn prerender-level [{:keys [w h] :as lvl}]
   (let [c (.createElement js/document "canvas")]
@@ -74,16 +90,27 @@
             (doto ctx
               (fill-style (nth tile-colors (lvl (+ lx lxoff) (+ ly lyoff))))
               (fill-rect (- (* lx 16) cxoff) (- (* ly 16) cyoff) 16 16)))))))
-
+(defn draw-player [ctx]
+  (doto ctx
+    (fill-style "white")
+    (stroke-style "black")
+    (rounded-rect -5 0 10 5 1)
+    fill stroke
+    (rounded-rect -8 -2 16 5 1)
+    fill stroke
+    (rounded-rect -4 -4 8 6 1)
+    fill stroke))
 (defn render-player
   [cvs {:keys [x y ex ey rot a?] :as player} xo yo]
   (with-save (context cvs)
     (style "white")
     (with-save
       (translate (- x xo) (- y yo))
-      (rotate rot)
-      (fill-style (if a? "black" "white"))
-      (fill-rect -4 -10 8 20))
+      (rotate (+ (/ Math/PI 2) rot))
+      (draw-player ctx)
+      ;; (fill-style (if a? "black" "white"))
+      ;; (fill-rect -4 -10 8 20)
+      )
     (with-path
       (move-to (- x xo) (- y yo))
       (line-to (- ex xo) (- ey yo)))
