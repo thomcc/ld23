@@ -17,6 +17,42 @@
       (if (< p (alength map))
         (aget map p)
         0))))
+;; (def tiles [:empty :sea :ground :lava :glass
+;;             :green-crystal :blue-crystal :pink-crystal :orange-crystal
+;;             :rock])
+
+;; (def tile-colors ["black" "#010914" "gray"  "red" "SkyBlue"
+;;                   "Chartreuse" "MediumAquaMarine" "Orchid" "DarkOrange"])
+
+
+(defrecord Tile [color solid? crystal? liq? hazard connects]
+  Object
+  (render [this ctx lvl x y]
+    (if connects?
+      (let []
+        (draw (* x 32) (* y 32) (if l -1 0) (if u -1 0))
+
+
+        )
+      (do ())
+      ))
+  )
+
+(def empty (Tile. "black" true  false false 0 false))
+(def sea (Tile. "#010914" false false true 10 true))
+(def ground (Tile. "gray" false false false 0 false))
+(def lava (Tile. "red" false false true 100 true))
+(def glass (Tile. "SkyBlue" false false false 0 true))
+;;(def rock (Tile. "DarkGray" true false false 0 ))
+(def green-crystal (Tile. "Chartreuse" true true false 0 false))
+(def blue-crystal   (Tile. "MediumAquaMarine" true true false 0 false))
+(def pink-crystal   (Tile. "Orchid"     true true false 0 false))
+(def orange-crystal (Tile. "DarkOrange" true true false 0 false))
+
+(def tiles [empty sea ground lava glass green-crystal blue-crystal
+            pink-crystal orange-crystal])
+
+
 
 (defn- offset [n v] (+ n (- (rand-int v) (rand-int v))))
 
@@ -39,13 +75,11 @@
         (when (> hs 1) (recur hs (* sc (+ sm 0.8)) (* sm 0.3)))))
     (let [s (* w h)] (fn [n] (aget arr (mod n s))))))
 
-(def tiles [:empty :sea :ground :lava :glass
-            :green-crystal :blue-crystal :pink-crystal :orange-crystal])
 
-(def tile-colors ["black" "#010914" "gray"  "red" "SkyBlue"
-                  "Chartreuse" "MediumAquaMarine" "Orchid" "DarkOrange"])
 
-(def indexof (->> (map-indexed vector tiles) (mapcat reverse) (apply hash-map)))
+(def indexof (->> (map-indexed vector tiles)
+                  (mapcat reverse)
+                  (apply hash-map)))
 
 (defn region [& opts]
   (let [{:keys [transforms size clusters spread rarity jitter okay-loc?]
@@ -70,15 +104,17 @@
      level)))
 
 
-(def crystal-types [:green-crystal :blue-crystal :pink-crystal :orange-crystal])
+(def crystal-types [green-crystal blue-crystal pink-crystal orange-crystal])
+
 
 (defregion crystals
-  :transforms (fn [g] (when-let [c ({:ground #(rand-nth crystal-types)} g)] (c)))
+  :transforms (fn [g] (when-let [c ({ground #(rand-nth crystal-types)} g)]
+                       (c)))
   :rarity (/ 1800)
   :jitter 10)
 
 (defregion glass-beaches
-  :transforms {:ground :glass}
+  :transforms {ground glass}
   :rarity (/ 3000)
   :size 10
   :spread 2
@@ -103,10 +139,11 @@
                                    (Math/abs (dec (* 2.0 (/ y (dec h))))))
                               16)
                     20))]
-        (aset m i (cond (< v -0.5) 1
-                        (and (> v 0.5) (< mv -1.5)) 3
-                        ;; (and (neg? v) (> (bbd i) 0.5)) 8
-                        :else 2))))
+        (aset m i (nth tiles
+                       (cond (< v -0.5) 1
+                             (and (> v 0.5) (< mv -1.5)) 3
+                             ;; (and (neg? v) (> (bbd i) 0.5)) 8
+                             :else 2)))))
     (reduce #(%2 %1) (Level. w h m) @regions)))
 
 

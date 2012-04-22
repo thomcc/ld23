@@ -1,7 +1,7 @@
 (ns ld23.main
   (:require [crate.core :as crate]
             [ld23.utils :as u]
-            [ld23.core :as t]
+            [ld23.core :as c]
             [ld23.game :as g]
             [ld23.input :as i]
             [ld23.screen :as screen])
@@ -12,11 +12,14 @@
    [:div#content
     [:h1 name]
     [:canvas#canvas {:width width :height height}]
-    [:span#fps]]])
+    [:span#fps]
+    (if c/debug?
+      [:button#stop "stop"]
+      [])]]) ;; necessary?
 
 (def game (atom nil))
 (def input (atom nil))
-
+(def running (atom false))
 (def animate
   (or (.-requestAnimationFrame js/window)
       (.-webkitRequestAnimationFrame js/window)
@@ -29,7 +32,7 @@
   (u/set-html (u/get-elem :fps) (.join (array fs " fps, " ts " ticks") "")))
 
 (defn layout-page []
-  (.appendChild (.-body js/document) (page t/game-name t/width t/height)))
+  (.appendChild (.-body js/document) (page c/game-name c/width c/height)))
 
 (def canvas)
 
@@ -45,12 +48,12 @@
 
 (def render-canvas
   (let [c (.createElement js/document "canvas")]
-    (set! c.width (/ t/width t/scale))
-    (set! c.height (/ t/height t/scale))
+    (set! c.width (/ c/width c/scale))
+    (set! c.height (/ c/height c/scale))
     c))
 
 (defn main-loop []
-  (when-not (contains? @input :quit)
+  (when @running
     (let [now (.getTime (js/Date.))]
       (swap! needed + (/ (- now @last-loop) (/ 1000 60)))
       (reset! last-loop now)
@@ -80,13 +83,20 @@
   (let [in (i/new-input)
         ng (g/new-game)]
     (reset! input in)
-    (reset! game ng)))
+    (reset! game ng)
+    (reset! running true)))
+
+(defn stop []
+  (reset! running false))
 
 (defn start [ml]
   (layout-page)
   (init-vars)
   (i/bind-events input canvas)
+  (when c/debug?
+    (set! (.-onclick (u/get-elem :stop)) stop))
   (animate ml))
+
 
 (defn restart []
   (animate main-loop))

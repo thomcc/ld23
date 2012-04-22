@@ -7,6 +7,10 @@
 (defn set-html [el h]
   (set! (.-innerHTML el) h))
 
+(defn ensure-str [s]
+  (cond (string? s) s
+        (keyword? s) (name s)
+        :else (str s)))
 
 (defn array-2d [w h func]
   (let [a (js/Array. h)]

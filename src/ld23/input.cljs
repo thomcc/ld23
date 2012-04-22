@@ -39,10 +39,6 @@
     (doto canvas
       (.addEventListener "mousemove" mm)
       (.addEventListener "mousedown" #(do (swap! input-atom assoc :c? true)
-                                          (prn "true")
-                                          (.log js/console @input-atom)
                                           (mm %)))
       (.addEventListener "mouseup" #(do (swap! input-atom assoc :c? false)
-                                        (prn "false")
-                                        (.log js/console @input-atom)
                                         (mm %))))))
