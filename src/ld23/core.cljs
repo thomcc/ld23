@@ -10,4 +10,4 @@
 (def width 640)
 (def height 480)
 (def scale 1)
-(def game-name "Crash!")
+(def game-name "Crashed on Minutiae Prime")

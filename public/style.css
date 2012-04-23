@@ -1,3 +1,4 @@
+@import url(http://fonts.googleapis.com/css?family=Press+Start+2P);
 html {
   margin:0;
   padding:0;
@@ -106,16 +107,6 @@ p {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+h1 {
+  font-family: 'Press Start 2P', monospace;
+}

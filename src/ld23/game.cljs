@@ -25,11 +25,25 @@
 (defn spawn-player [{:keys [w h] :as lvl}]
   (loop [x (rand-int w) y (rand-int h)]
     (if (l/ground? (lvl x y))
-      (player (* 32 x) (* 32 y))
+      (player (* 32 (+ x 0.5)) (* 32 (+ 0.5 y)))
       (recur (rand-int w) (rand-int h)))))
 
+(defn setup-level [{:keys [w h map] :as lvl}]
+  (let [[shipx shipy]
+        (loop [x (rand-int w) y (rand-int h)]
+          (if (every? #(l/ground? (lvl (+ x (% 0)) (+ y (% 1))))
+                      (for [i (range 3), j (range 3)] [i j]))
+
+            (do (when c/debug?
+                  (prn (str "found posn for ship at " x ", " y ".")))
+                [x y])
+            (recur (rand-int w) (rand-int h))))]
+    (assoc lvl
+      :sx shipx
+      :sy shipy)))
+
 (defn new-game []
-  (let [w (l/gen-world 128 128)]
+  (let [w (setup-level (l/gen-world 128 128))]
     (offset
      (Game. w (spawn-player w)
             0 0))))

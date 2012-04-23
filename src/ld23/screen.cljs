@@ -17,9 +17,6 @@
     (fill-style color)
     (stroke-style color)))
 
-(defn set-font [ctx font]
-  (set! ctx.font font))
-
 (defn line-width [ctx wid]
   (set! ctx.lineWidth wid))
 
@@ -28,8 +25,10 @@
 
 (defn clear-rect [ctx x y w h]
   (.clearRect ctx x y w h))
+
 (defn rect [ctx x y w h]
   (.rect ctx x y w h))
+
 (defn move-to [ctx x y]
   (.moveTo ctx x y))
 
@@ -48,7 +47,7 @@
 (defn alpha [ctx a]
   (set! ctx.globalAlpha a))
 (defn composite [ctx c]
-  (set! ctx.globalCompositeOperation (u/ensure-str which)))
+  (set! ctx.globalCompositeOperation (u/ensure-str c)))
 
 
 (defn quad-to [ctx x0 y0 x1 y1]
@@ -62,6 +61,15 @@
 
 (defn fill [ctx]
   (.fill ctx))
+
+(defn fill-text [ctx text x y]
+  (.fillText ctx text x y))
+
+(defn stroke-text [ctx text x y]
+  (.strokeText text x y))
+
+(defn text-width [ctx text]
+  (.. ctx (measureText text) -width))
 
 (defn begin-path [ctx]
   (.beginPath ctx))
@@ -102,8 +110,13 @@
   (doto (context cvs)
     (fill-style col)
     (fill-rect 0 0 cvs.width cvs.height)))
+
+(defn font [ctx f]
+  (set! ctx.font f))
+
 (defn draw-image [ctx i sx sy sw sh dx dy dw dh]
   (.drawImage ctx i sx sy sw sh dx dy dw dh))
+
 (defn rounded-rect [ctx x y w h r]
   (with-path ctx
     (move-to x (+ y r))
@@ -116,12 +129,28 @@
     (line-to (+ x r) y)
     (quad-to x y x (+ y r))))
 
+(defn write [cvs txt]
+  (let [ctx (context cvs)]
+    (doto ctx
+      (fill-style "white")
+      (font "15px PressStart"))
+    (dotimes [i (count txt)]
+      (let [line (nth txt i)
+            x (/ (- cvs.width (text-width ctx line)) 2)
+            y (+ (* 30 i) (/ (- cvs.height (* 30 (count txt))) 2))]
+        (fill-text ctx line x y)))))
+
 (defn make-pat [col]
   (let [c (.createElement js/document "canvas")]
     (set! c.width 48)
     (set! c.height 48)
     (doto (context c)
       (fill-style col)
+      (stroke-style "black")
+
+      ;; (line-cap "round")
+      ;; (line-join "round")
+      ;; (line-width 2)
       (with-path
         (move-to 16 0)
 
@@ -154,12 +183,11 @@
         ;;            8 0)
         (quad-to 0 0 16 0)
         )
-      fill)
+      fill
+      (alpha 0.4)
+      stroke
+      )
     c))
-
-(def sea-pat (make-pat (.-color gen/sea)))
-
-(def lava-pat (make-pat (.-color gen/lava)))
 
 (defn draw-crystals [ctx]
   (with-save ctx
@@ -180,7 +208,10 @@
       (line-to 26 28)
       (line-to 5 27)
       (line-to 2 18))
-    fill stroke
+    fill
+    (stroke-style "black")
+    (alpha 0.6)
+    stroke
     (with-path
       (move-to 2 18)
       (line-to 8 12)
@@ -203,12 +234,36 @@
       (line-to 23 26))
     stroke))
 
-(defn draw-liquid [ctx lvl x y pat]
+(defn predraw-crystal [c]
+  (let [cvs (.createElement js/document "canvas")]
+    (set! cvs.width 32)
+    (set! cvs.height 32)
+    (doto (context cvs)
+      (fill-style (.-color c))
+      draw-crystals)
+    cvs))
+
+(defn cache-tiles [tiles func]
+  (let [cache (reduce (fn [o t]
+                        (doto o
+                          (aset (.-id t) (func t))))
+                      (js-obj) tiles)]
+    #(aget cache (.-id %))))
+
+(def pats
+  (cache-tiles [gen/sea gen/lava gen/ground gen/glass]
+               #(make-pat (.-color %))))
+
+(def crystals
+  (cache-tiles gen/crystal-types
+               predraw-crystal))
+
+(defn draw-pat [ctx lvl x y pat]
   (let [t (lvl x y)
-        u (not= t (lvl x (dec y)))
-        d (not= t (lvl x (inc y)))
-        l (not= t (lvl (dec x) y))
-        r (not= t (lvl (inc x) y))]
+        u (not (identical? t (lvl x (dec y))))
+        d (not (identical? t (lvl x (inc y))))
+        l (not (identical? t (lvl (dec x) y)))
+        r (not (identical? t (lvl (inc x) y)))]
     (doto ctx
       (draw-image pat (* 16 (if l 0 1)) (* 16 (if u 0 1)) 16 16 0 0 16 16)
       (draw-image pat (* 16 (if r 2 1)) (* 16 (if u 0 1)) 16 16 16 0 16 16)
@@ -216,7 +271,7 @@
       (draw-image pat (* 16 (if r 2 1)) (* 16 (if d 2 1)) 16 16 16 16 16 16))))
 
 (defn render-level
-  [cvs {:keys [img] :as lvl} xo yo]
+  [cvs {:keys [sx sy] :as lvl} xo yo]
   (let [ctx (context cvs)
         cxoff (mod xo 32)
         cyoff (mod yo 32)
@@ -231,18 +286,16 @@
                 tile (lvl x y)
                 xx (- (* lx 32) cxoff)
                 yy (- (* ly 32) cyoff)]
-            (cond (.-crystal? tile)
-                  (with-save ctx
-                    (translate xx yy)
-                    (fill-style (.-color tile))
-                    draw-crystals)
-                  (.-liq? tile)
-                  (with-save ctx
-                    (translate xx yy)
-                    (draw-liquid lvl x y (if (gen/lava? tile) lava-pat sea-pat)))
-                  :else (doto ctx
-                          (fill-style (.-color tile))
-                          (fill-rect xx yy 32 32)))))))))
+            (when-let [p (pats tile)]
+              (with-save ctx
+                (translate xx yy)
+                (draw-pat lvl x y p)))
+            (when-let [c (crystals tile)]
+              (.drawImage ctx c xx yy))
+            (when (and (== x sx) (== y sy))
+              (with-save ctx
+                (translate xx yy)
+                draw-ship))))))))
 
 
 (defn draw-ship [ctx]
@@ -335,11 +388,28 @@
       (line-to (- ex xo) (- ey yo)))
     (stroke)))
 
-
+(defn print-messages
+  [cvs {:keys [player level xo yo] :as g}]
+  (with-save (context cvs)
+    (fill-style "navy")
+    (stroke-style "white")
+    (line-width 2)
+    (alpha 0.7)
+    (rounded-rect 5 5 150 30 3)
+    fill stroke
+    (font "15px Press Start 2P")
+    (fill-style "white")
+    (fill-text (str "PX: " (/ (Math/floor (* 100 (/ player.x 32))) 100) "  "
+                    "PY: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
+               15 25)))
 
 
 
 (defn render [cvs {:keys [player level xo yo] :as g}]
-  (doto cvs
-    (render-level level xo yo)
-    (render-player player xo yo (ld23.game/submerged? g))))
+  (let [ctx (context cvs)]
+    (saving ctx
+            (render-level cvs level xo yo))
+    (saving ctx
+            (render-player cvs player xo yo (ld23.game/submerged? g)))
+    (saving ctx
+            (print-messages cvs g))))

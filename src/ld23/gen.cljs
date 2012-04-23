@@ -10,7 +10,7 @@
     a))
 
 
-(defrecord Level [w h map]
+(defrecord Level [w h map items sx sy]
   IFn
   (invoke [_ x y]
     (let [p (+ x (* w y))]
@@ -18,21 +18,26 @@
         (aget map p)
         0))))
 
+(defn level [w h m] (Level. w h m {} -1 -1))
 
+(defrecord Tile [color solid? crystal? liq? hazard id])
 
+(def tile-ctr (atom 0))
 
-(defrecord Tile [color solid? crystal? liq? hazard connects])
+(defn tile [c s? c? l? h]
+  (let [id @tile-ctr]
+    (swap! tile-ctr inc)
+    (Tile. c s? c? l? h (str id))))
 
-(def empty (Tile. "black" true  false false 0 false))
-(def sea (Tile. "#010914" false false true 10 true))
-(def ground (Tile. "gray" false false false 0 false))
-(def lava (Tile. "red" false false true 100 true))
-(def glass (Tile. "SkyBlue" false false false 0 true))
-;;(def rock (Tile. "DarkGray" true false false 0 ))
-(def green-crystal (Tile. "Chartreuse" true true false 0 false))
-(def blue-crystal   (Tile. "MediumAquaMarine" true true false 0 false))
-(def pink-crystal   (Tile. "Orchid"     true true false 0 false))
-(def orange-crystal (Tile. "DarkOrange" true true false 0 false))
+(def empty (tile "black" true  false false 0))
+(def sea (tile "#010914" false false true 10))
+(def ground (tile "lightslategray" false false false 0))
+(def lava (tile "red" false false true 100))
+(def glass (tile "SkyBlue" false false false 0))
+(def green-crystal (tile "Chartreuse" true true false 0))
+(def blue-crystal (tile "MediumAquaMarine" true true false 0))
+(def pink-crystal (tile "Orchid" true true false 0))
+(def orange-crystal (tile "DarkOrange" true true false 0))
 
 (def tiles [empty sea ground lava glass green-crystal blue-crystal
             pink-crystal orange-crystal])
@@ -45,7 +50,6 @@
 (defn liquid? [t] (or (sea? t) (lava? t)))
 
 (defn- offset [n v] (+ n (- (rand-int v) (rand-int v))))
-
 
 (defn seed-ary [w h sz]
   (let [arr (mk-ary (* w h) 0), ->p (fn [x y] (+ (bit-and x (dec w)) (* w (bit-and y (dec h)))))]
@@ -89,8 +93,8 @@
                             cx (- x-off (dec spread)) (+ x-off spread) 1]
                            (when (and (< -1 cx w) (< -1 cy h))
                              (let [s (aget map (+ cx (* cy w)))]
-                               (when-let [newtile (transforms (tiles s))]
-                                 (aset map (+ cx (* cy w)) (indexof newtile)))))))))))))
+                               (when-let [newtile (transforms s)]
+                                 (aset map (+ cx (* cy w)) newtile))))))))))))
      level)))
 
 
@@ -98,15 +102,16 @@
 
 
 (defregion crystals
-  :transforms (fn [g] (when-let [c ({ground #(rand-nth crystal-types)} g)]
-                       (c)))
+  :transforms (fn [g]
+                (when-let [c ({ground #(rand-nth crystal-types)} g)]
+                  (c)))
   :rarity (/ 1800)
   :jitter 10)
 
 (defregion glass-beaches
   :transforms {ground glass}
   :rarity (/ 3000)
-  :size 10
+  :size 5
   :spread 2
   :jitter 5)
 
@@ -118,9 +123,15 @@
         mnb (seed-ary w h 16)
         mnc (seed-ary w h 16)
         ;; bbd (seed-ary w h 64)
+        ;; asa (seed-ary w h 8)
+        ;; asb (seed-ary w h 8)
+        ;; asc (seed-ary w h 8)
+        ;; asd (seed-ary w h 8)
         na (seed-ary w h 32)
         nb (seed-ary w h 32)
-        m (mk-ary (* w h) 0)]
+        m (mk-ary (* w h) 0)
+        ;; m2 (mk-ary (* w h) 0)
+        ]
     (dogrid [y 0 h 1, x 0 w 1]
       (let [i (+ x (* y w))
             mv (scaled-diff (diff (mna i) (mnb i)) (mnc i))
@@ -133,5 +144,11 @@
                        (cond (< v -0.5) 1
                              (and (> v 0.5) (< mv -1.5)) 3
                              ;; (and (neg? v) (> (bbd i) 0.5)) 8
-                             :else 2)))))
-    (reduce #(%2 %1) (Level. w h m) @regions)))
+                             :else 2)))
+        ))
+    (-> (level w h m)
+        glass-beaches
+        crystals
+        )
+    ;; (reduce #(%2 %1) (level w h m) @regions)
+    ))

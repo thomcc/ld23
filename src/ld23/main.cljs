@@ -89,16 +89,36 @@
 (defn stop []
   (reset! running false))
 
+(defn- notify [c & txt]
+  (doto c
+    (screen/clear "black")
+    (screen/write txt)))
+
 (defn start [ml]
   (layout-page)
-  (init-vars)
-  (i/bind-events input canvas)
   (when c/debug?
     (set! (.-onclick (u/get-elem :stop)) stop))
-  (animate ml))
-
+  (let [c (u/get-elem :canvas)]
+    (notify c "Generating world..." "(please be patient)")
+    (js/setTimeout (fn []
+                     (init-vars)
+                     (notify c "Binding events")
+                     (js/setTimeout (fn []
+                                      (i/bind-events input canvas)
+                                      (notify c "Starting game!")
+                                      (js/setTimeout ml 50))
+                                    50))
+                   10)))
 
 (defn restart []
   (animate main-loop))
 
-(start main-loop)
+(let [l (doto (.createElement js/document "link")
+          (aset "rel" "stylesheet")
+          (aset "type" "text/css")
+          (aset "href" "http://fonts.googleapis.com/css?family=Press+Start+2P"))
+      i (js/Image.)]
+  (.appendChild (aget (.getElementsByTagName js/document "head") 0) l)
+  (doto i
+    (aset "src" (.-href l))
+    (aset "onerror" #(start main-loop))))
