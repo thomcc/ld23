@@ -23,6 +23,9 @@
 (defn fill-rect [ctx x y w h]
   (.fillRect ctx x y w h))
 
+(defn stroke-rect [ctx x y w h]
+  (.strokeRect ctx x y w h))
+
 (defn clear-rect [ctx x y w h]
   (.clearRect ctx x y w h))
 
@@ -457,7 +460,34 @@
     ;;   (line-to (- ex xo) (- ey yo)))
     ;; (stroke)
     ))
+(defn draw-health [ctx h]
+  (with-save ctx
+    (line-join :round)
+    (line-cap :round)
+    (stroke-style "black")
+    (alpha 1)
+    (scale 5 5)
+    ;; (translate 1 5)
+    (line-width 0.3)
+    (fill-style "lightslategray")
+    (fill-rect 2 5.5 15 2.2)
+    (fill-style "#63cd27")
+    (fill-rect 2 5.5 (* (/ h 100) 15) 2.2)
+    (stroke-rect 2 5.5 15 2.2)
+    (fill-style "red")
 
+    (with-path
+      (move-to 2 5.5)
+      ;; (line-to 4 5)
+      ;; (quad-to 3 3 4 5)
+      (bezier-to 3 4 5 5 2 8)
+      ;; (line-to 2 8)
+      ;; (line-to 0 5)
+      ;; (line-to 2 5)
+      ;; (quad-to 1 3 2 5)
+      (bezier-to -1 5 1 4 2 5.5))
+    stroke fill
+    ))
 (defn print-data
   [cvs {:keys [player level xo yo] :as g}]
   (with-save (context cvs)
@@ -473,6 +503,9 @@
                15 25)
     (fill-text (str "Y: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
                15 40)
+    (with-save
+      (translate 15 25)
+      (draw-health player.health))
     ))
 
 

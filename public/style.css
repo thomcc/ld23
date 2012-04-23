@@ -63,7 +63,7 @@ html, canvas, img {
 body {
   background-color: #0f1d20;
   color: #ff7c00;
-  padding: 40px 80px;
+  padding: 80px;
 }
 
 a {
@@ -71,6 +71,12 @@ a {
 }
 
 #wrapper {
+  float: left;
+  display: inline
+  width: 1200px;
+}
+
+#content {
   border-radius: 10px;
   -webkit-border-radius: 10px;
   -moz-border-radius: 10px;
@@ -81,11 +87,9 @@ a {
   border: 1px solid rgba(0,0,0,0.1);
 }
 
-#content {
-  text-align: center;
-}
-
 #canvas {
+  float: left;
+  display: inline;
   margin: auto;
 }
 
@@ -105,5 +109,69 @@ h1 {
 
 canvas {
   cursor: crosshair;
+  float: left;
 }
 
+#journal {
+  color: white;
+  float: left;
+  font-family: monospace;
+  font-size: 10px;
+  width: 500px;
+  float: left;
+  display: inline;
+  margin: 10px;
+  padding: 10px;
+  background-color: rgba(0,0,0,0.5);
+  border-radius: 20px;
+  -webkit-border-radius: 20px;
+  -moz-border-radius: 20px;
+  -ms-border-radius: 20px;
+  -o-border-radius: 20px;
+}
+
+#journal .entry {
+  width: 100%;
+  float: left;
+  display: inline;
+}
+#journal .entry h3 {
+  text-align: center;
+  margin: auto;
+  font-size: 2em;
+}
+
+.entry p span {
+  font-weight: bold;
+  line-height: 1.1em;
+  padding: 0 2px;
+  border-radius: 3px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  -ms-border-radius: 3px;
+  -o-border-radius: 3px;
+}
+
+.entry p .item {
+  background-color: red;
+  color: white
+}
+
+.entry p .planet {
+  background-color: orange;
+  color: black
+}
+
+.entry p .key {
+  background-color: green;
+  color: white;
+}
+
+.clearfix:after{
+  clear: both;
+  content: ".";
+  display: block;
+  height: 0;
+  visibility: hidden;
+  font-size: 0;
+}

@@ -8,45 +8,33 @@
 
 (defrecord Message [text pos])
 
-(defn message [cols & txt]
+(defn message [txt]
   (Message. (apply array txt) 0))
 (def lpow 5)
 (def lscale (Math/pow 2 lpow))
 
 
 
-(def crashed
-  (message
-   30
-   "Journal entry 4037. My name is is VQ-18J."
-   "I am a scientist, currently researching small planetoids."
-   "Current subject: \"Minutae Prime\"."
-   "An interesting due to the abundant hydrocarbons"
-   "present on its surface. Indication of life?"
-   "Underestimated gravitational pull, shipwrecked."
-   "Hull breached, starboard engine detached,"
-   "Insufficient crystal fulminate to power engines."
-   "Radar missing. Probable best course of action:"
-   "Locate RADAR. It has to be around here somewhere..."))
+
 
 (def player-speed 2)
 
-(defrecord Game [level player xo yo messages])
+(defrecord Game [level player xo yo messages over?])
 
 (defn offset [game]
   (let [level game.level, player game.player]
-    (Game. level player
-           (-> (- (.-x player) (/ c/width 2 c/scale))
-               (max 0)
-               (min (- (* lscale (.-w level)) (/ c/width c/scale))))
-           (-> (- (.-y player) (/ c/height 2 c/scale))
-               (max 0)
-               (min (- (* lscale (.-h level)) (/ c/height c/scale)))))))
+    (assoc game
+      :xo (-> (- (.-x player) (/ c/width 2 c/scale))
+              (max 0)
+              (min (- (* lscale (.-w level)) (/ c/width c/scale))))
+      :yo (-> (- (.-y player) (/ c/height 2 c/scale))
+              (max 0)
+              (min (- (* lscale (.-h level)) (/ c/height c/scale)))))))
 
 
-(defrecord Player [x y ex ey rot destx desty moving? steps items])
+(defrecord Player [x y ex ey rot destx desty moving? steps items health])
 
-(defn player [x y] (Player. x y 0 0 0 x y false 0 []))
+(defn player [x y] (Player. x y 0 0 0 x y false 0 [] 100))
 
 (defn setup-level [{:keys [w h map] :as lvl}]
   (let [[shipx shipy]
@@ -72,30 +60,31 @@
   (let [px (bit-shift-right player.x lpow)
         py (bit-shift-right player.y lpow)
         t (level px py)
-        pdam (/ t.hazard 100 30)
+        pdam (/ t.hazard 100)
         pi (if-let [ni (get-in level [:items [px py]])]
              (conj player.items ni)
              player.items)]
     (-> game
         (update-in [:player] assoc
                    :health (- player.health pdam)
-                   :items pi))))
+                   :items pi)
+        )))
 
-(def prad 16)
+(def prad 8)
 
 (defn move
   [{:keys [x y] :as p} level dx dy]
   (if-not (== 0 dx dy)
-    (let [opx0 (bit-shift-right (- x prad -16) lpow)
-          opy0 (bit-shift-right (- y prad -16) lpow)
-          opx1 (bit-shift-right (+ x prad 16) lpow)
-          opy1 (bit-shift-right (+ y prad 16) lpow)
-          npx0 (bit-shift-right (- (+ dx x) prad -16) lpow)
-          npy0 (bit-shift-right (- (+ dy y) prad -16) lpow)
-          npx1 (bit-shift-right (+ (+ dx x) prad 16) lpow)
-          npy1 (bit-shift-right (+ (+ dy y) prad 16) lpow)
+    (let [opx0 (bit-shift-right (- x prad) lpow)
+          opy0 (bit-shift-right (- y prad) lpow)
+          opx1 (bit-shift-right (+ x prad) lpow)
+          opy1 (bit-shift-right (+ y prad) lpow)
+          npx0 (bit-shift-right (- (+ dx x) prad) lpow)
+          npy0 (bit-shift-right (- (+ dy y) prad) lpow)
+          npx1 (bit-shift-right (+ (+ dx x) prad) lpow)
+          npy1 (bit-shift-right (+ (+ dy y) prad) lpow)
           can-move? (atom true)]
-      (dogrid [pyt npy0 npy1 1, pxt npx0 npx1 1]
+      (dogrid [pyt npy0 (inc npy1) 1, pxt npx0 (inc npx1) 1]
         (when-not (and (< opx0 pxt (inc opx1)) (< opy0 pyt (inc opy1)))
           (when (.-solid? (level pxt pyt))
             (reset! can-move? false))))
@@ -103,6 +92,9 @@
         (assoc p :x (+ x dx) :y (+ y dy))
         p))
     p))
+
+(defn maybe-game-over [{p :player :as g}]
+  (assoc g :over? (< p.health 0)))
 
 (defn tick-player
   [{:keys [level player xo yo] :as game} {:keys [ks mx my c?] :as input}]
@@ -127,7 +119,8 @@
                         (move level 0 pdy))))
                 player)
               (assoc :ex (+ mx xo), :ey (+ my yo), :rot (Math/atan2 ey ex)))))
-      update-player))
+      update-player
+      maybe-game-over))
 
 
 (defn set-dest [player dstx dsty]

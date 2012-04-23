@@ -4,6 +4,7 @@
             [ld23.core :as c]
             [ld23.game :as g]
             [ld23.input :as i]
+            [ld23.plot :as p]
             [ld23.screen :as screen])
   (:use-macros [crate.macros :only [defpartial]]))
 
@@ -11,9 +12,14 @@
   [:div#wrapper
    [:div#content
     [:h1 name]
-    [:canvas#canvas {:width width :height height
-                     ;; fix cursor
-                     :onmousedown "return false;"}]
+    [:div#game
+     [:div.clearfix
+      [:canvas#canvas {:width width :height height
+                       ;; fix cursor
+                       :onmousedown "return false;"}]
+      [:div#journal
+       [:h3 "Ship Log"]
+       p/crashed]]]
     [:span#fps]
     (if c/debug?
       [:button#stop "stop"]
@@ -31,13 +37,20 @@
       (fn [callback] (js/setTimeout callback 17))))
 
 (defn update-fps [fs ts]
-  (u/set-html (u/get-elem :fps) (.join (array fs " fps, " ts " ticks") "")))
+  (u/set-html (u/get-elem :fps)
+              (.join (array fs " fps, " ts " ticks")
+                     "")))
 
 (defn layout-page []
-  (.appendChild (.-body js/document) (page c/game-name c/width c/height)))
+  (.appendChild (.-body js/document)
+                (page c/game-name c/width c/height)))
 
 (def canvas)
 
+(defn- notify [c & txt]
+  (doto c
+    (screen/clear "black")
+    (screen/write txt)))
 
 (def last-loop (atom (.getTime (js/Date.))))
 
@@ -48,27 +61,37 @@
 
 (def needed (atom 0))
 
-(def render-canvas
-  (let [c (.createElement js/document "canvas")]
-    (set! c.width (/ c/width c/scale))
-    (set! c.height (/ c/height c/scale))
-    c))
+(def render-canvas (u/make-canvas (/ c/width c/scale) (/ c/height c/scale)))
+
+(defn set-journal [j]
+  (set! (.-innerHTML (u/get-elem :journal)) ""))
+
+(defn clear-journal [] (set-journal ""))
+
+(defn restart-game []
+  (clear-messages)
+  (notify canvas "Generating world..." "(please be patient)")
+  (js/setTimeout #(set! game (g/new-game)) 10))
 
 (defn main-loop []
   (when @running
-    (let [now (.getTime (js/Date.))]
+    (let [now (.getTime (js/Date.))
+          over? (.-over? @game)]
       (swap! needed + (/ (- now @last-loop) (/ 1000 60)))
       (reset! last-loop now)
-      (swap! game #(loop [n @needed, g %]
-                     (if (pos? n)
-                       (do (swap! ticks inc)
-                           (swap! needed dec)
-                           (swap! total-ticks inc)
-                           (recur (dec n) (g/tick g @input)))
-                       g)))
+      (when-not over?
+        (swap! game #(loop [n @needed, g %]
+                       (if (pos? n)
+                         (do (swap! ticks inc)
+                             (swap! needed dec)
+                             (swap! total-ticks inc)
+                             (recur (dec n) (g/tick g @input)))
+                         g))))
       (animate main-loop)
       (screen/render render-canvas @game)
       (.. canvas (getContext "2d") (drawImage render-canvas 0 0))
+      (when over?
+        (screen/draw-game-over canvas @game @input))
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
         (reset! last-fps-update (.getTime (js/Date.)))
@@ -86,10 +109,6 @@
 (defn stop []
   (reset! running false))
 
-(defn- notify [c & txt]
-  (doto c
-    (screen/clear "black")
-    (screen/write txt)))
 
 (defn start [ml]
   (layout-page)
