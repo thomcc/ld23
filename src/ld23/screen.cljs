@@ -106,6 +106,18 @@
     (add-stop 0 c1)
     (add-stop 1 c2)))
 
+(defn rounded-rect [ctx x y w h r]
+  (with-path ctx
+    (move-to x (+ y r))
+    (line-to x (+ y h (- r)))
+    (quad-to x (+ y h) (+ x r) (+ y h))
+    (line-to (+ x w (- r)) (+ y h))
+    (quad-to (+ x w) (+ y h) (+ x w) (+ y h (- r)))
+    (line-to (+ x w) (+ y r))
+    (quad-to (+ x w) y (+ x w (- r)) y)
+    (line-to (+ x r) y)
+    (quad-to x y x (+ y r))))
+
 (defn clear [cvs col]
   (doto (context cvs)
     (fill-style col)
@@ -133,7 +145,7 @@
   (let [ctx (context cvs)]
     (doto ctx
       (fill-style "white")
-      (font "15px PressStart"))
+      (font "15px monospace"))
     (dotimes [i (count txt)]
       (let [line (nth txt i)
             x (/ (- cvs.width (text-width ctx line)) 2)
@@ -141,9 +153,7 @@
         (fill-text ctx line x y)))))
 
 (defn make-pat [col]
-  (let [c (.createElement js/document "canvas")]
-    (set! c.width 48)
-    (set! c.height 48)
+  (let [c (u/make-canvas 48 48)]
     (doto (context c)
       (fill-style col)
       (stroke-style "black")
@@ -151,8 +161,7 @@
       ;; (line-cap "round")
       ;; (line-join "round")
       ;; (line-width 2)
-      (with-path
-        (move-to 16 0)
+      (with-path (move-to 16 0)
 
         ;; (bezier-to 20 2 24 0 28 2)
         ;; (bezier-to 32 0 48 0 48 16)
@@ -234,10 +243,109 @@
       (line-to 23 26))
     stroke))
 
+(def shipgx0 32)
+(def shipgx1 24)
+(def shipgy0 0)
+(def shipgy1 4)
+(def shipgr0 3)
+(def shipgr1 15)
+(def shipgs0 0.1)
+(def shipgs1 0.8)
+(defn draw-ship [ctx]
+  (doto ctx
+     (fill-style "#ccc")
+    (stroke-style "black")
+    (line-width 0.3)
+    (scale 3 3)
+    (with-save
+      (with-path ;; okay engine
+        (translate 2 0)
+        (move-to 32 20)
+        (line-to 32 13)
+        (line-to 17 13)
+        (line-to 17 16)
+        (quad-to 17 20 24 20)
+        (line-to 32 20)))
+    fill stroke
+    (with-path ;; main hull
+      (move-to 16 0)
+      (line-to 31 0)
+      (quad-to 32 0 32 1)
+      (line-to 32 15)
+      (quad-to 32 16 31 16)
+      (line-to 16 16)
+      (quad-to 4 14 0 8)
+      (quad-to 4 2 16 0))
+    (with-save
+      (fill-style
+       (doto (radial-gradient ctx
+                              shipgx0 shipgy0 shipgr0
+                              shipgx1 shipgy1 shipgr1)
+         (add-stop shipgs0 "#474747")
+         (add-stop shipgs1 "#d6d6d6")))
+      fill)
+    stroke
+    ;; (with-save ;; busted engine
+    ;;   clip
+    ;;   (with-path
+    ;;     (move-to 16 0)
+    ;;     (quad-to 16 8 48 8)
+    ;;     (line-to 32 48)
+    ;;     (line-to 16 0))
+    ;;   (fill-style
+    ;;    (doto (radial-gradient ctx 7 5 3 1 5 2)
+    ;;      (add-stop 0 "#474747")
+    ;;      (add-stop 1 "#d6d6d6")))
+    ;;   fill)
+    (with-path ;; viewport
+      (move-to 16 4)
+      (line-to 23 4)
+      (quad-to 24 4 24 5)
+      (line-to 24 11)
+      (quad-to 24 12 23 12)
+      (line-to 16 12)
+      ;; (bezier-to 8 12 8 4 16 4)
+      (quad-to 8 12 4 8)
+      (quad-to 8 4 16 4))
+    (fill-style
+     (doto (linear-gradient ctx 0 0 32 16)
+       (add-stop 0.3 "#99ccff")
+       (add-stop 0.5 "#d0e8ff")
+       (add-stop 0.7 "#99ccff")))
+    fill
+    (with-save
+      (alpha 0.7)
+      stroke)
+    (with-save
+      clip
+      (translate 0 -3)
+      (stroke-style "#7198bd") ;; lighter crack
+      (with-path
+        (move-to 14 7)
+        (line-to 20 12)
+        (move-to 19 11)
+        (line-to 20 10)
+        (move-to 11 10)
+        (line-to 14 13))
+      stroke
+      (stroke-style "#4c637e") ;; darker crack
+      (with-path
+        (move-to 13 7)
+        (line-to 16 9)
+        (move-to 14 8)
+        (line-to 11 11)
+        (line-to 9 11)
+        (move-to 12 10)
+        (line-to 13 11))
+      (stroke))
+))
+
+
+(def ship-img
+  (let [c (u/make-canvas )]))
+
 (defn predraw-crystal [c]
-  (let [cvs (.createElement js/document "canvas")]
-    (set! cvs.width 32)
-    (set! cvs.height 32)
+  (let [cvs (u/make-canvas 32 32)]
     (doto (context cvs)
       (fill-style (.-color c))
       draw-crystals)
@@ -276,7 +384,8 @@
         cxoff (mod xo 32)
         cyoff (mod yo 32)
         lxoff (Math/floor (/ xo 32))
-        lyoff (Math/floor (/ yo 32))]
+        lyoff (Math/floor (/ yo 32))
+        shippos (atom false)]
     (clear cvs "gray")
     (saving ctx
       (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 32))]
@@ -293,54 +402,14 @@
             (when-let [c (crystals tile)]
               (.drawImage ctx c xx yy))
             (when (and (== x sx) (== y sy))
-              (with-save ctx
-                (translate xx yy)
-                draw-ship))))))))
+              (reset! shippos [xx yy])))))
+      (when-let [p @shippos]
+        (doto ctx
+          (translate (nth @shippos 0) (nth @shippos 1))
+          (draw-ship))))))
 
 
-(defn draw-ship [ctx]
-  (doto ctx
-    (fill-style "#ccc")
-    (stroke-style "black")
-    (line-width 0.3)
-    (with-path
-      (move-to 16 0)
-      (line-to 31 0)
-      (quad-to 32 0 32 1)
-      (line-to 32 15)
-      (quad-to 32 16 31 16)
-      (line-to 16 16)
-      (quad-to 4 14 0 8)
-      (quad-to 4 2 16 0))
-    fill stroke
-    (with-path
-      (move-to 16 4)
-      (line-to 23 4)
-      (quad-to 24 4 24 5)
-      (line-to 24 11)
-      (quad-to 24 12 23 12)
-      (line-to 16 12)
-      ;; (bezier-to 8 12 8 4 16 4)
-      (quad-to 8 12 4 8)
-      (quad-to 8 4 16 4))
-    (fill-style
-     (doto (linear-gradient ctx 0 0 32 16)
-       (add-stop 0.3 "#99ccff")
-       (add-stop 0.5 "#d0e8ff")
-       (add-stop 0.7 "#99ccff")))
-    fill stroke))
 
-(defn rounded-rect [ctx x y w h r]
-  (with-path ctx
-    (move-to x (+ y r))
-    (line-to x (+ y h (- r)))
-    (quad-to x (+ y h) (+ x r) (+ y h))
-    (line-to (+ x w (- r)) (+ y h))
-    (quad-to (+ x w) (+ y h) (+ x w) (+ y h (- r)))
-    (line-to (+ x w) (+ y r))
-    (quad-to (+ x w) y (+ x w (- r)) y)
-    (line-to (+ x r) y)
-    (quad-to x y x (+ y r))))
 
 (def sd (vec (take 12 (repeatedly rand))))
 
@@ -359,8 +428,8 @@
       (stroke-style "black")
       (rounded-rect -4 -4 8 6 1)
       fill stroke
-      (stroke-style "rgba(0,0,0)")
-      (alpha (/ (nth sd (mod pos 12)) 10))
+      (stroke-style "white")
+      (alpha (nth sd (mod pos 12)))
       (rounded-rect -6 -6 12 8 3)
       stroke)
     (let [arm (mod pos 4) l (== arm 1) r (== arm 3)]
@@ -383,25 +452,28 @@
       (translate (- x xo) (- y yo))
       (rotate (+ (/ Math/PI 2) rot))
       (draw-player (Math/floor (/ steps 10)) s?))
-    (with-save
-      (move-to (- x xo) (- y yo))
-      (line-to (- ex xo) (- ey yo)))
-    (stroke)))
+    ;; (with-save
+    ;;   (move-to (- x xo) (- y yo))
+    ;;   (line-to (- ex xo) (- ey yo)))
+    ;; (stroke)
+    ))
 
-(defn print-messages
+(defn print-data
   [cvs {:keys [player level xo yo] :as g}]
   (with-save (context cvs)
     (fill-style "navy")
     (stroke-style "white")
     (line-width 2)
     (alpha 0.7)
-    (rounded-rect 5 5 150 30 3)
+    (rounded-rect 5 5 150 300 3)
     fill stroke
-    (font "15px Press Start 2P")
+    (font "10px monospace")
     (fill-style "white")
-    (fill-text (str "PX: " (/ (Math/floor (* 100 (/ player.x 32))) 100) "  "
-                    "PY: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
-               15 25)))
+    (fill-text (str "X: " (/ (Math/floor (* 100 (/ player.x 32))) 100))
+               15 25)
+    (fill-text (str "Y: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
+               15 40)
+    ))
 
 
 
@@ -412,4 +484,4 @@
     (saving ctx
             (render-player cvs player xo yo (ld23.game/submerged? g)))
     (saving ctx
-            (print-messages cvs g))))
+            (print-data cvs g))))

@@ -20,3 +20,20 @@
         (dotimes [i w]
           (aset row i (func i j)))))
     a))
+
+
+(defn elem [e]
+  (.createElement js/document (name e)))
+
+(defn get-tags [t]
+  (.getElementsByTagName js/document (name t)))
+
+(defn get-tag [t n]
+  (aget (.getElementsByTagName js/document (name t))
+        n))
+
+(defn make-canvas [w h]
+  (let [c (elem :canvas)]
+    (set! c.width w)
+    (set! c.height h)
+    c))

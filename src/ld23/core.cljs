@@ -3,7 +3,7 @@
 
 (set! *print-fn* #(.log js/console %))
 
-;(repl/connect "http://localhost:9000/repl")
+(repl/connect "http://localhost:9000/repl")
 
 (def debug? true)
 

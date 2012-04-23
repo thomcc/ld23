@@ -30,7 +30,8 @@
     (fn [e]
       (let [mx (+ (.-clientX e) (- l) (.-pageXOffset js/window))
             my (+ (.-clientY e) (- t) (.-pageYOffset js/window))]
-        (swap! ia assoc :mx mx :my my)))))
+        (swap! ia assoc :mx mx :my my)
+        false))))
 
 (defn bind-events [input-atom canvas]
   (set! (.-onkeydown js/document) (on-key input-atom conj))

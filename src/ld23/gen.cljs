@@ -29,15 +29,16 @@
     (swap! tile-ctr inc)
     (Tile. c s? c? l? h (str id))))
 
-(def empty (tile "black" true  false false 0))
-(def sea (tile "#010914" false false true 10))
-(def ground (tile "lightslategray" false false false 0))
-(def lava (tile "red" false false true 100))
-(def glass (tile "SkyBlue" false false false 0))
-(def green-crystal (tile "Chartreuse" true true false 0))
-(def blue-crystal (tile "MediumAquaMarine" true true false 0))
-(def pink-crystal (tile "Orchid" true true false 0))
-(def orange-crystal (tile "DarkOrange" true true false 0))
+(def empty          (tile "black"           true false false 0))
+(def sea            (tile "#010914"        false false true 1))
+(def ground         (tile "lightslategray" false false false 0))
+(def lava           (tile "red"            false false true 10))
+(def glass          (tile "SkyBlue"        false false false 0))
+(def green-crystal  (tile "Chartreuse"       true true false 0)) ; tbd
+(def blue-crystal   (tile "MediumAquaMarine" true true false 0)) ; tbd
+(def pink-crystal   (tile "Orchid"           true true false 0)) ; heal
+(def orange-crystal (tile "DarkOrange"       true true false 0)) ; fuel
+(def ship           (tile nil                true false false 0))
 
 (def tiles [empty sea ground lava glass green-crystal blue-crystal
             pink-crystal orange-crystal])

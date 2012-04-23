@@ -11,7 +11,9 @@
   [:div#wrapper
    [:div#content
     [:h1 name]
-    [:canvas#canvas {:width width :height height}]
+    [:canvas#canvas {:width width :height height
+                     ;; fix cursor
+                     :onmousedown "return false;"}]
     [:span#fps]
     (if c/debug?
       [:button#stop "stop"]
@@ -66,11 +68,7 @@
                        g)))
       (animate main-loop)
       (screen/render render-canvas @game)
-
-      (.. canvas
-          (getContext "2d")
-          (drawImage render-canvas 0 0))
-
+      (.. canvas (getContext "2d") (drawImage render-canvas 0 0))
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
         (reset! last-fps-update (.getTime (js/Date.)))
@@ -80,8 +78,7 @@
 
 (defn init-vars []
   (set! canvas (u/get-elem :canvas))
-  (let [in (i/new-input)
-        ng (g/new-game)]
+  (let [in (i/new-input), ng (g/new-game)]
     (reset! input in)
     (reset! game ng)
     (reset! running true)))
@@ -100,25 +97,19 @@
     (set! (.-onclick (u/get-elem :stop)) stop))
   (let [c (u/get-elem :canvas)]
     (notify c "Generating world..." "(please be patient)")
-    (js/setTimeout (fn []
-                     (init-vars)
-                     (notify c "Binding events")
-                     (js/setTimeout (fn []
-                                      (i/bind-events input canvas)
-                                      (notify c "Starting game!")
-                                      (js/setTimeout ml 50))
-                                    50))
-                   10)))
+    (js/setTimeout
+     (fn []
+       (init-vars)
+       (notify c "Binding events")
+       (js/setTimeout
+        (fn []
+          (i/bind-events input canvas)
+          (notify c "Starting game!")
+          (js/setTimeout ml 50))
+        50))
+     10)))
 
 (defn restart []
   (animate main-loop))
 
-(let [l (doto (.createElement js/document "link")
-          (aset "rel" "stylesheet")
-          (aset "type" "text/css")
-          (aset "href" "http://fonts.googleapis.com/css?family=Press+Start+2P"))
-      i (js/Image.)]
-  (.appendChild (aget (.getElementsByTagName js/document "head") 0) l)
-  (doto i
-    (aset "src" (.-href l))
-    (aset "onerror" #(start main-loop))))
+(start main-loop)

@@ -99,14 +99,11 @@ p {
   margin: 15px;
 }
 
-
-
-
-
-
-
-
-
 h1 {
   font-family: 'Press Start 2P', monospace;
 }
+
+canvas {
+  cursor: crosshair;
+}
+
