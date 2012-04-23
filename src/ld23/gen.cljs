@@ -17,29 +17,32 @@
       (if (< p (alength map))
         (aget map p)
         0))))
-;; (def tiles [:empty :sea :ground :lava :glass
-;;             :green-crystal :blue-crystal :pink-crystal :orange-crystal
-;;             :rock])
 
 
 
 
-(defrecord Tile [solid? crystal? liq? hazard?])
+(defrecord Tile [color solid? crystal? liq? hazard connects])
 
-(def empty (Tile. true  false false 0))
-(def sea (Tile. false false true 10))
-(def ground (Tile. false false false 0))
-(def lava (Tile. false false true 100))
-(def glass (Tile. false false false 0))
-(def green-crystal (Tile. true true false 0))
-(def blue-crystal (Tile. true true false 0))
-(def pink-crystal (Tile. true true false 0))
-(def orange-crystal (Tile. true true false 0))
+(def empty (Tile. "black" true  false false 0 false))
+(def sea (Tile. "#010914" false false true 10 true))
+(def ground (Tile. "gray" false false false 0 false))
+(def lava (Tile. "red" false false true 100 true))
+(def glass (Tile. "SkyBlue" false false false 0 true))
+;;(def rock (Tile. "DarkGray" true false false 0 ))
+(def green-crystal (Tile. "Chartreuse" true true false 0 false))
+(def blue-crystal   (Tile. "MediumAquaMarine" true true false 0 false))
+(def pink-crystal   (Tile. "Orchid"     true true false 0 false))
+(def orange-crystal (Tile. "DarkOrange" true true false 0 false))
 
 (def tiles [empty sea ground lava glass green-crystal blue-crystal
             pink-crystal orange-crystal])
 
-
+(defn ground? [t] (identical? t ground))
+(defn lava? [t] (identical? t lava))
+(defn crystal? [t] (.-crystal? t))
+(defn glass? [t] (identical? t glass))
+(defn sea? [t] (identical? t sea))
+(defn liquid? [t] (or (sea? t) (lava? t)))
 
 (defn- offset [n v] (+ n (- (rand-int v) (rand-int v))))
 
@@ -132,26 +135,3 @@
                              ;; (and (neg? v) (> (bbd i) 0.5)) 8
                              :else 2)))))
     (reduce #(%2 %1) (Level. w h m) @regions)))
-
-(def tile-colors ["black" "#010914" "gray"  "red" "SkyBlue"
-                  "Chartreuse" "MediumAquaMarine" "Orchid" "DarkOrange"])
-
-(defn demo [c]
-  (.. c (getContext "2d") (clearRect 0 0 c.width c.height))
-  (let [m (gen-world 128 128)]
-    (let [ctx (.getContext c "2d")]
-      (dotimes [i 128]
-        (dotimes [j 128]
-          (set! ctx.fillStyle (tile-colors (m i j)))
-          (.fillRect ctx (* i 4) (* j 4) 4 4))))
-    c))
-
-(defn test-gen []
-  (.appendChild (ld23.utils/get-elem :content)
-                (crate.core/html
-                 [:div#testing
-                  [:canvas#test {:width 512 :height 512}]
-                  [:button#btn {:style "display: block; margin: auto"} "generate"]]))
-  (let [c (.getElementById js/document "test")]
-    (demo c)
-    (set! (.-onclick (.getElementById js/document "btn")) #(demo c))))
