@@ -130,8 +130,8 @@
           (when (.-solid? (level pxt pyt))
             (reset! can-move? false)
             (let [t (level pxt pyt)]
-              (aset level.map (+ pxt (* 128 pyt)) l/ground)
               (when (= :crystal (.-name t))
+                (aset level.map (+ pxt (* 128 pyt)) l/ground)
                 (swap! found-crystals inc))))))
       (if @can-move?
         (assoc p :x (+ x dx) :y (+ y dy) ;; :found-item? (or found-item? @crystal?)
