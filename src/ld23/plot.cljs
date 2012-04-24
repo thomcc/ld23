@@ -37,7 +37,7 @@
     ship and escape."
    [:p "I should try to find my ships "
     [:span.item "starboard engine"] " next. It should show as a
-   purple spot on the radar. [author: it is hard to see :(]"]))
+   purple spot on the radar."]))
 
 (def got-engine
   (message
