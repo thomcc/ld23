@@ -1,4 +1,6 @@
 (ns ld23.plot
+  (:require [ld23.utils :as u]
+            [crate.core :as crate])
   (:use-macros [crate.macros :only [defpartial]]))
 
 (def journal-entry (atom (+ 4000 (rand-int 100))))
@@ -12,7 +14,6 @@
    (cons [:h4 (str "Journal entry " (next-entry))]
          (map (fn [t] (if (string? t) [:p t] t))
               text))])
-
 
 
 (def crashed
@@ -31,11 +32,12 @@
 (def got-radar
   (message
    [:p "I have located my radar, and as luck would have it, I found my blaster
-    with it.  I can use my blaster with the " [:span.key "space"]] " bar."
+    with it. Maybe this will prove useful"]
    "I should be able to use this to seek out the items I need to repair my
     ship and escape."
    [:p "I should try to find my ships "
-    [:span.item "starboard engine"] " next."]))
+    [:span.item "starboard engine"] " next. It should show as a
+   purple spot on the radar. [author: it is hard to see :(]"]))
 
 (def got-engine
   (message
@@ -54,17 +56,23 @@
         present in the orange crystals. " [:span.item "10 orange crystals"]
     " should be enough for me to get off this rock for good."]))
 
-(def upset-locals
-  (message
-   "For whatever reason, the native denizens of this planet did not take kindly
-    to my destruction of the crystals. They have risen out of the sea, and
-    wish to kill me!"
-   [:p " I still need to collect "
-    [:span.item "5 more crystals"] " and to get back to my ship!"]))
-
 (def win
   (message
    "My name is is VQ-18J. I research small planetoids."
    [:p "On my last expedition I crashed on " [:span.planet "Minutia Prime"]]
    "Overcoming great odds, I was able to repair my ship, and escape that
     hell-hole."))
+
+(def plot-points
+  {:radar got-radar
+   :engine got-engine
+   :glass got-sand
+   :won win})
+
+(defn plot-point [i]
+  (prn (str "moving from plot point " i))
+  (let [it (plot-points i)
+        j (u/get-elem :journal)]
+    (doto j
+      (.removeChild j.lastChild)
+      (.appendChild it))))

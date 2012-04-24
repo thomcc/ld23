@@ -18,6 +18,12 @@
      ~@forms
      (.closePath)))
 
+(defn pathing [c & forms]
+  `(let [c# ~c]
+     (.beginPath c#)
+     ~@forms
+     (.closePath c#)))
+
 (defmacro dogrid [bindings & body]
   (let [[i starti endi stepi, j startj endj stepj] bindings]
     `(let [startj# ~startj, endj# ~endj, stepj# ~stepj
@@ -33,3 +39,9 @@
 (defmacro defregion [name & opts]
   `(do (def ~name (ld23.gen/region ~@opts))
        (swap! ld23.gen/regions conj ~name)))
+
+(defn dbg [& forms]
+  `(let [r# (do ~@forms)]
+     (when ld23.core/debug?
+       (pr r#))
+     r#))

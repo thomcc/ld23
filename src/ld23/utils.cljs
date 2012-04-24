@@ -37,3 +37,5 @@
     (set! c.width w)
     (set! c.height h)
     c))
+
+(defn offset [n v] (+ n (- (rand-int v) (rand-int v))))

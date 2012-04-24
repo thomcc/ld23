@@ -90,7 +90,7 @@ a {
 #canvas {
   float: left;
   display: inline;
-  margin: auto;
+  margin: 10px;
 }
 
 

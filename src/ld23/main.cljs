@@ -22,7 +22,7 @@
        p/crashed]]]
     [:span#fps]
     (if c/debug?
-      [:button#stop "stop"]
+      [:button#stop {:style "display: none;"} "stop"]
       [])]]) ;; necessary?
 
 (def game (atom nil))
@@ -76,10 +76,11 @@
 (defn main-loop []
   (when @running
     (let [now (.getTime (js/Date.))
-          over? (.-over? @game)]
+          over? (.-over? @game)
+          won? (.-won? @game)]
       (swap! needed + (/ (- now @last-loop) (/ 1000 60)))
       (reset! last-loop now)
-      (when-not over?
+      (when-not (or over? won?)
         (swap! game #(loop [n @needed, g %]
                        (if (pos? n)
                          (do (swap! ticks inc)
@@ -90,8 +91,17 @@
       (animate main-loop)
       (screen/render render-canvas @game)
       (.. canvas (getContext "2d") (drawImage render-canvas 0 0))
-      (when over?
-        (screen/draw-game-over canvas @game @input))
+
+      (cond over? (notify canvas
+                          "Game Over"
+                          "refresh to try again"
+                          "(sorry, didn't have time for good menus)")
+            won? (notify canvas
+                         "You Won!"
+                         "Thanks for playing!"
+                         "refresh to try again"
+                         "(sorry, didn't have time for good menus)"))
+
       (swap! frames inc)
       (when (<= 1000 (- (.getTime (js/Date.)) @last-fps-update))
         (reset! last-fps-update (.getTime (js/Date.)))

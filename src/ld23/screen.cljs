@@ -2,7 +2,7 @@
   (:use [ld23.gen :only [tile-colors crystal?]])
   (:require [ld23.utils :as u]
             [ld23.gen :as gen])
-  (:use-macros [ld23.macros :only [with-path with-save saving]]))
+  (:use-macros [ld23.macros :only [with-path with-save saving pathing]]))
 
 (defn context [cvs] (.getContext cvs "2d"))
 
@@ -79,6 +79,9 @@
 
 (defn close-path [ctx]
   (.closePath ctx))
+
+(defn arc [ctx x y r sa ea ac?]
+  (.arc ctx x y r sa ea ac?))
 
 (defn clip [ctx]
   (.clip ctx))
@@ -201,6 +204,31 @@
       )
     c))
 
+(defn draw-radar [ctx]
+  (with-save ctx
+    (fill-style "green")
+    (stroke-style "black")
+    (with-path
+      (arc 5 5 5 0 (* 2 Math/PI)))
+    stroke fill clip
+    (line-width 0.1)
+    (stroke-style "rgba(0,255,0,0.7)")
+    begin-path
+    (do (dotimes [i 10]
+          (doto ctx
+            (move-to 0 i)
+            (line-to 10 i)
+            (move-to i 0)
+            (line-to i 10))))
+    close-path
+    stroke
+    (line-width 0.4)
+    (with-path
+      (move-to 5 5)
+      (line-to (+ 5 (/ 5 (Math/sqrt 2)))
+               (+ 5 (/ 5 (Math/sqrt 2)))))
+    stroke))
+
 (defn draw-crystals [ctx]
   (with-save ctx
     (with-path
@@ -246,6 +274,7 @@
       (line-to 23 26))
     stroke))
 
+
 (def shipgx0 32)
 (def shipgx1 24)
 (def shipgy0 0)
@@ -254,21 +283,28 @@
 (def shipgr1 15)
 (def shipgs0 0.1)
 (def shipgs1 0.8)
+
+(defn draw-engine [ctx flip?]
+  (with-save ctx
+    (with-path
+      (scale 1 (if flip? -1 1))
+      (move-to 15 7)
+      (line-to 15 0)
+      (line-to 0 0)
+      (line-to 0 3)
+      (quad-to 0 7 9 7)
+      (line-to 15 7))))
+
 (defn draw-ship [ctx]
   (doto ctx
-     (fill-style "#ccc")
+    (fill-style "#ccc")
     (stroke-style "black")
     (line-width 0.3)
     (scale 3 3)
     (with-save
-      (with-path ;; okay engine
-        (translate 2 0)
-        (move-to 32 20)
-        (line-to 32 13)
-        (line-to 17 13)
-        (line-to 17 16)
-        (quad-to 17 20 24 20)
-        (line-to 32 20)))
+      (translate 15 13)
+      ;; (translate 24 24)
+      (draw-engine false))
     fill stroke
     (with-path ;; main hull
       (move-to 16 0)
@@ -382,13 +418,14 @@
       (draw-image pat (* 16 (if r 2 1)) (* 16 (if d 2 1)) 16 16 16 16 16 16))))
 
 (defn render-level
-  [cvs {:keys [sx sy] :as lvl} xo yo]
+  [cvs {:keys [sx sy items] :as lvl} xo yo]
   (let [ctx (context cvs)
         cxoff (mod xo 32)
         cyoff (mod yo 32)
         lxoff (Math/floor (/ xo 32))
         lyoff (Math/floor (/ yo 32))
-        shippos (atom false)]
+        shippos (atom false)
+        is (keys items)]
     (clear cvs "gray")
     (saving ctx
       (dotimes [ly (Math/ceil (/ (+ cvs.height cyoff) 32))]
@@ -405,14 +442,25 @@
             (when-let [c (crystals tile)]
               (.drawImage ctx c xx yy))
             (when (and (== x sx) (== y sy))
-              (reset! shippos [xx yy])))))
+              (reset! shippos [xx yy]))
+            (when (== :radar (.-name tile))
+              (with-save ctx
+                (translate (inc xx) (inc yy))
+                (scale 3 3)
+                (draw-radar)))
+            (when (== :engine (.-name tile))
+              (with-save ctx
+                (translate xx (+ 16 yy))
+                (fill-style "#ccc")
+                (stroke-style "black")
+                (line-width 0.3)
+                (scale 2 2)
+                (draw-engine true)
+                fill stroke)))))
       (when-let [p @shippos]
         (doto ctx
           (translate (nth @shippos 0) (nth @shippos 1))
           (draw-ship))))))
-
-
-
 
 (def sd (vec (take 12 (repeatedly rand))))
 
@@ -460,6 +508,37 @@
     ;;   (line-to (- ex xo) (- ey yo)))
     ;; (stroke)
     ))
+;; cruft.
+(def mm-cvs (u/make-canvas 128 128))
+
+(defn cache-minimap [level]
+  (let [ctx (context mm-cvs)]
+    (dotimes [i 128]
+      (dotimes [j 128]
+        (doto ctx
+;;          (prn (.-color (level i j)))
+          (fill-style (.-color (level i j)))
+          (fill-rect i j 1 1))))))
+
+(def blink-atom (atom 0))
+(defn draw-mm [ctx {:keys [player level need-items]}]
+  (swap! blink-atom inc)
+  (let [px (bit-shift-right player.x 5)
+        py (bit-shift-right player.y 5)]
+    (.drawImage ctx mm-cvs 0 0)
+    (when (even? (bit-shift-right @blink-atom 3))
+      (doto ctx
+        (fill-style "white")
+        (fill-rect (- px 0.5) (- py 0.5) 2 2))
+      (when (= :engine (first need-items))
+        (let [[ex ey] (get-in level [:item-posns :engine])]
+          (doto ctx
+            (fill-style "purple")
+            (fill-rect (- ex 0.5) (- ey 0.5) 2 2))))
+      )
+    ))
+
+
 (defn draw-health [ctx h]
   (with-save ctx
     (line-join :round)
@@ -475,7 +554,6 @@
     (fill-rect 2 5.5 (* (/ h 100) 15) 2.2)
     (stroke-rect 2 5.5 15 2.2)
     (fill-style "red")
-
     (with-path
       (move-to 2 5.5)
       ;; (line-to 4 5)
@@ -488,27 +566,37 @@
       (bezier-to -1 5 1 4 2 5.5))
     stroke fill
     ))
+
 (defn print-data
-  [cvs {:keys [player level xo yo] :as g}]
-  (with-save (context cvs)
-    (fill-style "navy")
-    (stroke-style "white")
-    (line-width 2)
-    (alpha 0.7)
-    (rounded-rect 5 5 150 300 3)
-    fill stroke
-    (font "10px monospace")
-    (fill-style "white")
-    (fill-text (str "X: " (/ (Math/floor (* 100 (/ player.x 32))) 100))
-               15 25)
-    (fill-text (str "Y: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
-               15 40)
-    (with-save
-      (translate 15 25)
-      (draw-health player.health))
-    ))
-
-
+  [cvs {:keys [player level xo yo need-items] :as g}]
+  (let [ctx (context cvs)]
+   (with-save ctx
+     (fill-style "navy")
+     (stroke-style "white")
+     (line-width 2)
+     (alpha 0.7)
+     (rounded-rect 5 5 150 300 3)
+     fill stroke
+     (font "10px monospace")
+     (fill-style "white")
+     (fill-text (str "X: " (/ (Math/floor (* 100 (/ player.x 32))) 100))
+                15 25)
+     (fill-text (str "Y: " (/ (Math/floor (* 100 (/ player.y 32))) 100))
+                15 40)
+     (with-save
+       (translate 15 25)
+       (draw-health player.health))
+     (do ;; hack
+       ;; though, might make for a helpful macro
+       (when (contains? player.items :radar)
+         (doto ctx
+           (translate 15 90)
+           (draw-mm g)))
+       (when (and ld23.game/found-crystals (pos? @ld23.game/found-crystals))
+         (doto ctx
+;           (translate 15 250)
+           (fill-text (str "Crystals: " @ld23.game/found-crystals)
+                15 200)))))))
 
 (defn render [cvs {:keys [player level xo yo] :as g}]
   (let [ctx (context cvs)]

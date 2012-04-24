@@ -1,5 +1,6 @@
 (ns ld23.gen
-  (:require [clojure.set :as set])
+  (:require [clojure.set :as set]
+            [ld23.utils :as u])
   (:use-macros [ld23.macros :only [dogrid defregion]]))
 
 (def regions (atom ()))
@@ -9,8 +10,8 @@
     (dotimes [i s] (aset a i init))
     a))
 
-
-(defrecord Level [w h map items sx sy]
+;;; getting ridiculous
+(defrecord Level [w h map items item-posns sx sy nx ny]
   IFn
   (invoke [_ x y]
     (let [p (+ x (* w y))]
@@ -18,27 +19,32 @@
         (aget map p)
         0))))
 
-(defn level [w h m] (Level. w h m {} -1 -1))
+(defn level [w h m] (Level. w h m {} {} -1 -1 -1 -1))
 
-(defrecord Tile [color solid? crystal? liq? hazard id])
+(defrecord Tile [color solid? crystal? liq? hazard name id])
 
 (def tile-ctr (atom 0))
 
-(defn tile [c s? c? l? h]
+(defn tile [c s? c? l? h name]
   (let [id @tile-ctr]
     (swap! tile-ctr inc)
-    (Tile. c s? c? l? h (str id))))
+    (Tile. c s? c? l? h name (str id))))
 
-(def empty          (tile "black"           true false false 0))
-(def sea            (tile "#010914"        false false true 1))
-(def ground         (tile "lightslategray" false false false 0))
-(def lava           (tile "red"            false false true 10))
-(def glass          (tile "SkyBlue"        false false false 0))
-(def green-crystal  (tile "Chartreuse"       true true false 0)) ; tbd
-(def blue-crystal   (tile "MediumAquaMarine" true true false 0)) ; tbd
-(def pink-crystal   (tile "Orchid"           true true false 0)) ; heal
-(def orange-crystal (tile "DarkOrange"       true true false 0)) ; fuel
-(def ship           (tile nil                true false false 0))
+(def empty          (tile "black"           true false false 0 :empty))
+(def sea            (tile "#010914"        false false true 1 :sea))
+(def ground         (tile "lightslategray" false false false 0 :ground))
+(def lava           (tile "red"            false false true 10 :lava))
+(def glass          (tile "SkyBlue"        false false false 0 :glass))
+(def green-crystal  (tile "Chartreuse"       true true false 0 :gcrystal))
+(def blue-crystal   (tile "MediumAquaMarine" true true false 0 :bcrystal)) ;
+(def pink-crystal   (tile "Orchid"           true true false 0 :pcrystal)) ;
+(def orange-crystal (tile "DarkOrange"       true true false 0 :crystal)) ;
+(def ship (tile "yellow" true false false 0 :ship)) ;; hack
+;;; more of a hack:
+
+(def radar (tile "lightslategray" false false false 0 :radar))
+
+(def engine (tile "magenta" false false false 0 :engine))
 
 (def tiles [empty sea ground lava glass green-crystal blue-crystal
             pink-crystal orange-crystal])
@@ -50,7 +56,7 @@
 (defn sea? [t] (identical? t sea))
 (defn liquid? [t] (or (sea? t) (lava? t)))
 
-(defn- offset [n v] (+ n (- (rand-int v) (rand-int v))))
+
 
 (defn seed-ary [w h sz]
   (let [arr (mk-ary (* w h) 0), ->p (fn [x y] (+ (bit-and x (dec w)) (* w (bit-and y (dec h)))))]
@@ -89,7 +95,7 @@
              (let [x (+ xl (- (rand-int (inc (* 2 size))) size))
                    y (+ yl (- (rand-int (inc (* 2 size))) size))]
                (dotimes [_ clusters]
-                 (let [x-off (offset x jitter), y-off (offset y jitter)]
+                 (let [x-off (u/offset x jitter), y-off (u/offset y jitter)]
                    (dogrid [cy (- y-off (dec spread)) (+ y-off spread) 1
                             cx (- x-off (dec spread)) (+ x-off spread) 1]
                            (when (and (< -1 cx w) (< -1 cy h))
@@ -99,7 +105,7 @@
      level)))
 
 
-(def crystal-types [green-crystal blue-crystal pink-crystal orange-crystal])
+(def crystal-types [green-crystal blue-crystal pink-crystal orange-crystal orange-crystal])
 
 
 (defregion crystals
