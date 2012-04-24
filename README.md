@@ -1,15 +1,12 @@
-# ld23
+# Crashed on Minutiae Prime
 
-I'm an app. Or maybe I'm a library? I haven't decided yet. 
+My entry to the Ludum Dare 23 Jam, follow the theme of "Tiny World".
 
-The choice is up to you!
-
-## Usage
-
-FIXME
+Written in ClojureScript, and made in 72 hours.  It's not really
+a good example of idiomatic ClojureScript code, but it seems to work fairly well.
 
 ## License
 
-Copyright © 2012 FIXME
+Copyright © 2012 Thom Chiovoloni
 
 Distributed under the Eclipse Public License, the same as Clojure.
