@@ -37,9 +37,11 @@
       (fn [callback] (js/setTimeout callback 17))))
 
 (defn update-fps [fs ts]
-  (u/set-html (u/get-elem :fps)
-              (.join (array fs " fps, " ts " ticks")
-                     "")))
+
+  ;; (u/set-html (u/get-elem :fps)
+  ;;             (.join (array fs " fps, " ts " ticks")
+  ;;                    ""))
+  )
 
 (defn layout-page []
   (.appendChild (.-body js/document)
@@ -136,7 +138,7 @@
           (notify c "Starting game!")
           (js/setTimeout ml 50))
         50))
-     10)))
+     100)))
 
 (defn restart []
   (animate main-loop))

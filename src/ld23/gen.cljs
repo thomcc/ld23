@@ -98,10 +98,10 @@
                  (let [x-off (u/offset x jitter), y-off (u/offset y jitter)]
                    (dogrid [cy (- y-off (dec spread)) (+ y-off spread) 1
                             cx (- x-off (dec spread)) (+ x-off spread) 1]
-                           (when (and (< -1 cx w) (< -1 cy h))
-                             (let [s (aget map (+ cx (* cy w)))]
-                               (when-let [newtile (transforms s)]
-                                 (aset map (+ cx (* cy w)) newtile))))))))))))
+                       (when (and (< -1 cx w) (< -1 cy h))
+                         (let [s (aget map (+ cx (* cy w)))]
+                           (when-let [newtile (transforms s)]
+                             (aset map (+ cx (* cy w)) newtile))))))))))))
      level)))
 
 

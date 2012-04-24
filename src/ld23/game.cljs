@@ -113,7 +113,7 @@
 
 
 (defn move
-  [{:keys [x y found-item?] :as p} level dx dy]
+  [{:keys [x y found-item?] :as p} level c? dx dy]
   (if-not (== 0 dx dy)
     (let [opx0 (bit-shift-right (- x prad) lpow)
           opy0 (bit-shift-right (- y prad) lpow)
@@ -130,7 +130,7 @@
           (when (.-solid? (level pxt pyt))
             (reset! can-move? false)
             (let [t (level pxt pyt)]
-              (when (= :crystal (.-name t))
+              (when (and c? (= :crystal (.-name t)))
                 (aset level.map (+ pxt (* 128 pyt)) l/ground)
                 (swap! found-crystals inc))))))
       (if @can-move?
@@ -161,8 +161,8 @@
                       :moving? false)
                     (-> player
                         (update-in [:steps] inc)
-                        (move level pdx 0)
-                        (move level 0 pdy))))
+                        (move level (= :crystals (first need-items)) pdx 0)
+                        (move level (= :crystals (first need-items)) 0 pdy))))
                 player)
               (assoc :ex (+ mx xo), :ey (+ my yo), :rot (Math/atan2 ey ex)))))
       update-player
