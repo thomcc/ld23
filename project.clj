@@ -6,7 +6,7 @@
                  [crate "0.1.0-alpha3"]
 
                  ]
-  :dev-dependencies [[lein-cljsbuild "0.1.8"]]
+  :dev-dependencies [[lein-cljsbuild "0.2.1"]]
   :extra-classpath-dirs ["checkouts/clojurescript/src/clj"
                          "checkouts/clojurescript/src/cljs"]
   :cljsbuild {:builds {:dev {:source-path "src"

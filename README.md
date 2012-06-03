@@ -2,8 +2,10 @@
 
 My entry to the Ludum Dare 23 Jam, follow the theme of "Tiny World".
 
-Written in ClojureScript, and made in 72 hours.  It's not really
-a good example of idiomatic ClojureScript code, but it seems to work fairly well.
+This game was made in 72 hours using ClojureScript/HTML5. It uses canvas for
+rendering, and has no sound.  Feel free to browse the source, however
+there are some terrible hacks in it, owing to the 72 hour time constraint.
+
 
 ## License
 

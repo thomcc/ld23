@@ -296,7 +296,7 @@
       (line-to 15 7))))
 
 (defn draw-ship [ctx]
-  (doto ctx
+  (with-save ctx
     (fill-style "#ccc")
     (stroke-style "black")
     (line-width 0.3)
@@ -458,7 +458,7 @@
                 (draw-engine true)
                 fill stroke)))))
       (when-let [p @shippos]
-        (doto ctx
+        (with-save ctx
           (translate (nth @shippos 0) (nth @shippos 1))
           (draw-ship))))))
 
